@@ -1,0 +1,171 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Log files
+*.log
+logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build artifacts
+dist/
+build/
+bin/
+
+# Coverage reports
+coverage/
+coverage.txt
+*.cover
+
+# Docker volumes
+docker-data/
+
+# Node modules (if any frontend tools)
+node_modules/
+
+# Terraform state
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Kubernetes secrets
+secrets/
+*.key
+*.crt
+*.pem
+
+# Backup files
+*.bak
+*.backup
+
+# Local development
+.local/
+local/
+
+# Performance test results
+*.perf
+benchmark-results/
+
+# Load test artifacts
+k6-results/
+artillery-reports/
+
+# Monitoring and metrics
+prometheus-data/
+grafana-data/
+
+# Air live reload
+tmp/
+main
+
+# Migration files (if generated)
+migrations/*.sql.bak
+
+# Config overrides
+config/override.toml
+config/local.toml
+
+# Test data
+test-data/
+mock-data/
+
+# Documentation build
+docs/_build/
+docs/.doctrees/
+
+# Cache directories
+.cache/
+cache/
+
+# Runtime files
+*.pid
+*.lock
+
+# SSL certificates
+*.p12
+*.pfx
+keystore/
+
+# AWS credentials (should never be committed)
+.aws/
+.aws-credentials
+
+# GCP credentials
+gcp-credentials.json
+service-account-key.json
+
+# Azure credentials
+azure-credentials.json
+
+# Local database dumps
+*.dump
+*.sql.gz
+
+# Performance profiles
+*.pprof
+*.cpu
+*.mem
+
+# Local environment scripts
+scripts/local-*
+scripts/dev-*
+
+# Temporary service ports
+*.port
+
+# Local testing
+test-local/
+local-tests/
+
+# Build cache
+.go-cache/
+
+# Go modules cache (optional, usually in user home)
+# go.sum is kept, but you can add go.mod.backup if needed

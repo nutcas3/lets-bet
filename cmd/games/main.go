@@ -3,16 +3,29 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/betting-platform/internal/core/usecase"
 	"github.com/betting-platform/internal/games"
+	"github.com/betting-platform/internal/repository/mock"
+	"github.com/gorilla/mux"
 )
 
 func main() {
 	log.Println("Starting Crash Games Service")
+
+	// Initialize router
+	r := mux.NewRouter()
+
+	// Initialize handlers
+	handler := games.NewHandler()
+
+	// Register routes
+	handler.RegisterRoutes(r)
 
 	// Initialize context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -28,8 +41,8 @@ func main() {
 
 	// Initialize repositories (mock for now)
 	// In production, connect to PostgreSQL
-	gameRepo := &MockGameRepository{}
-	betRepo := &MockGameBetRepository{}
+	gameRepo := mock.NewMockGameRepository()
+	betRepo := mock.NewMockGameBetRepository()
 
 	// Initialize Crash Game Engine
 	engine := games.NewCrashGameEngine(hub, fairService, gameRepo, betRepo)
@@ -40,42 +53,41 @@ func main() {
 	log.Println("Crash Game Engine running")
 	log.Println("Players can connect via WebSocket to receive real-time updates")
 
+	// Start server
+	port := os.Getenv("GAMES_PORT")
+	if port == "" {
+		port = "8082"
+	}
+
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	go func() {
+		log.Printf("Games Service listening on port %s", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	log.Println("Shutting down Games Service...")
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
 	cancel()
 
 	log.Println("Games Service exited cleanly")
-}
-
-type MockGameRepository struct{}
-
-func (r *MockGameRepository) Create(ctx context.Context, game interface{}) error {
-	log.Printf("[Mock] Game created: Round %v", game)
-	return nil
-}
-
-func (r *MockGameRepository) UpdateStatus(ctx context.Context, id interface{}, status interface{}) error {
-	log.Printf("[Mock] Game status updated: %v -> %v", id, status)
-	return nil
-}
-
-type MockGameBetRepository struct{}
-
-func (r *MockGameBetRepository) Create(ctx context.Context, bet interface{}) error {
-	log.Printf("[Mock] Game bet created: %v", bet)
-	return nil
-}
-
-func (r *MockGameBetRepository) GetActiveByGame(ctx context.Context, gameID interface{}) ([]interface{}, error) {
-	log.Printf("[Mock] Getting active bets for game: %v", gameID)
-	return []interface{}{}, nil
-}
-
-func (r *MockGameBetRepository) UpdateCashout(ctx context.Context, id interface{}, cashoutAt interface{}, payout interface{}) error {
-	log.Printf("[Mock] Cashout updated: %v at %v = %v", id, cashoutAt, payout)
-	return nil
 }

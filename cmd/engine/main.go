@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	enginehttp "github.com/betting-platform/internal/infrastructure/http"
 	"github.com/gorilla/mux"
 )
 
@@ -18,15 +19,11 @@ func main() {
 	// Initialize router
 	r := mux.NewRouter()
 
-	// Health check
-	r.HandleFunc("/health", healthCheckHandler).Methods("GET")
+	// Initialize handlers
+	handler := enginehttp.NewEngineHandler(nil)
 
-	// Internal API
-	api := r.PathPrefix("/internal/v1").Subrouter()
-	api.HandleFunc("/odds/live", getLiveOddsHandler).Methods("GET")
-	api.HandleFunc("/odds/event/{eventId}", getEventOddsHandler).Methods("GET")
-	api.HandleFunc("/bets/validate", validateBetHandler).Methods("POST")
-	api.HandleFunc("/bets/calculate", calculateOddsHandler).Methods("POST")
+	// Register routes
+	handler.RegisterRoutes(r)
 
 	// Start odds sync from Sportradar
 	ctx, cancel := context.WithCancel(context.Background())
@@ -70,49 +67,6 @@ func main() {
 	}
 
 	log.Println("Engine Service exited cleanly")
-}
-
-func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"healthy","service":"engine"}`))
-}
-
-func getLiveOddsHandler(w http.ResponseWriter, r *http.Request) {
-	// Return live odds for in-play matches
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{
-		"matches": [
-			{
-				"event_id": "match_12345",
-				"home_team": "Arsenal",
-				"away_team": "Chelsea",
-				"markets": {
-					"1X2": {"home": 2.10, "draw": 3.40, "away": 3.20}
-				}
-			}
-		]
-	}`))
-}
-
-func getEventOddsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"odds":2.50,"available":true}`))
-}
-
-func validateBetHandler(w http.ResponseWriter, r *http.Request) {
-	// Validate bet selections against current odds
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"valid":true,"total_odds":5.25}`))
-}
-
-func calculateOddsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"total_odds":8.50,"potential_win":850.00}`))
 }
 
 func syncOddsFromProvider(ctx context.Context) {

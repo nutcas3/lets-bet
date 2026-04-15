@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/betting-platform/internal/wallet"
 	"github.com/gorilla/mux"
 )
 
@@ -18,15 +19,11 @@ func main() {
 	// Initialize router
 	r := mux.NewRouter()
 
-	// Health check
-	r.HandleFunc("/health", healthCheckHandler).Methods("GET")
+	// Initialize handlers
+	handler := wallet.NewHandler()
 
-	// Internal API (called by other services)
-	api := r.PathPrefix("/internal/v1").Subrouter()
-	api.HandleFunc("/wallets/{userId}", getWalletHandler).Methods("GET")
-	api.HandleFunc("/wallets/{userId}/debit", debitWalletHandler).Methods("POST")
-	api.HandleFunc("/wallets/{userId}/credit", creditWalletHandler).Methods("POST")
-	api.HandleFunc("/transactions", createTransactionHandler).Methods("POST")
+	// Register routes
+	handler.RegisterRoutes(r)
 
 	// Start server
 	port := os.Getenv("WALLET_PORT")
@@ -63,37 +60,4 @@ func main() {
 	}
 
 	log.Println("Wallet Service exited cleanly")
-}
-
-func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"healthy","service":"wallet"}`))
-}
-
-func getWalletHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"balance":5000.00,"currency":"KES","version":42}`))
-}
-
-func debitWalletHandler(w http.ResponseWriter, r *http.Request) {
-	// Implement atomic wallet debit with optimistic locking
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"success":true,"new_balance":4900.00}`))
-}
-
-func creditWalletHandler(w http.ResponseWriter, r *http.Request) {
-	// Implement atomic wallet credit
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"success":true,"new_balance":5100.00}`))
-}
-
-func createTransactionHandler(w http.ResponseWriter, r *http.Request) {
-	// Log transaction to immutable ledger
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(`{"transaction_id":"txn_123","status":"completed"}`))
 }

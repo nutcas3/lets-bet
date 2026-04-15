@@ -13,7 +13,7 @@ import (
 
 // CrashGameEngine manages the game loop for Aviator-style crash games
 type CrashGameEngine struct {
-	hub          *Hub
+	hub          WebSocketHub
 	fairService  *usecase.ProvablyFairService
 	gameRepo     GameRepository
 	betRepo      GameBetRepository
@@ -33,8 +33,13 @@ type GameBetRepository interface {
 	UpdateCashout(ctx context.Context, id uuid.UUID, cashoutAt decimal.Decimal, payout decimal.Decimal) error
 }
 
+type WebSocketHub interface {
+	BroadcastGameState(state interface{})
+	GetActivePlayerCount(gameID uuid.UUID) int
+}
+
 func NewCrashGameEngine(
-	hub *Hub,
+	hub WebSocketHub,
 	fairService *usecase.ProvablyFairService,
 	gameRepo GameRepository,
 	betRepo GameBetRepository,
@@ -64,35 +69,27 @@ func (e *CrashGameEngine) Start(ctx context.Context) {
 	}
 }
 
-// runRound executes a single game round
 func (e *CrashGameEngine) runRound(ctx context.Context) {
-	// 1. PREPARATION PHASE
-	game := e.prepareGame(ctx)
-	e.currentGame = game
+	// 1. Prepare new round
+	game := e.prepareNewRound(ctx)
 
-	// 2. BETTING PHASE (5 seconds)
+	// 2. Betting phase
 	e.bettingPhase(ctx, game)
 
-	// 3. FLIGHT PHASE (crash game)
+	// 3. Flight phase
 	e.flightPhase(ctx, game)
 
-	// 4. SETTLEMENT PHASE
+	// 4. Settlement phase
 	e.settlementPhase(ctx, game)
 
-	// 5. Increment round
+	// Increment round number
 	e.roundNumber++
-
-	// Small pause before next round
-	time.Sleep(2 * time.Second)
 }
 
-func (e *CrashGameEngine) prepareGame(ctx context.Context) *domain.Game {
-	// Generate provably fair seeds
+func (e *CrashGameEngine) prepareNewRound(ctx context.Context) *domain.Game {
+	// Generate provably fair crash point
 	serverSeed := e.fairService.GenerateServerSeed()
-	serverSeedHash := e.fairService.HashServerSeed(serverSeed)
-	clientSeed := "player_combined_seed_" + time.Now().Format("20060102150405")
-
-	// Calculate crash point (hidden from players)
+	clientSeed := "default-client-seed" // In production, get from user
 	crashPoint := e.fairService.CalculateCrashPoint(serverSeed, clientSeed, e.roundNumber)
 
 	game := &domain.Game{
@@ -100,12 +97,12 @@ func (e *CrashGameEngine) prepareGame(ctx context.Context) *domain.Game {
 		GameType:       domain.GameTypeCrash,
 		RoundNumber:    e.roundNumber,
 		ServerSeed:     serverSeed,
-		ServerSeedHash: serverSeedHash,
+		ServerSeedHash: e.fairService.HashServerSeed(serverSeed),
 		ClientSeed:     clientSeed,
 		CrashPoint:     crashPoint,
 		Status:         domain.GameStatusWaiting,
 		StartedAt:      time.Now(),
-		CountryCode:    "GLOBAL", // Can be region-specific
+		CountryCode:    "KE", // Default to Kenya
 		MinBet:         decimal.NewFromInt(10),
 		MaxBet:         decimal.NewFromInt(10000),
 		MaxMultiplier:  decimal.NewFromInt(100),
@@ -116,7 +113,7 @@ func (e *CrashGameEngine) prepareGame(ctx context.Context) *domain.Game {
 		log.Printf("Error creating game: %v", err)
 	}
 
-	log.Printf("Round %d prepared. Crash point: %.2fx (hidden)", e.roundNumber, crashPoint)
+	log.Printf("Round %d prepared. Crash point: %s (hidden)", e.roundNumber, crashPoint.String())
 
 	return game
 }
@@ -135,15 +132,15 @@ func (e *CrashGameEngine) bettingPhase(ctx context.Context, game *domain.Game) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			remaining := int(bettingDuration.Seconds() - time.Since(startTime).Seconds())
+			remaining := bettingDuration - time.Since(startTime)
 
+			// Broadcast betting state
 			state := &GameState{
-				GameID:            game.ID,
-				RoundNumber:       game.RoundNumber,
-				Status:            domain.GameStatusWaiting,
-				CurrentMultiplier: decimal.NewFromInt(1),
-				TimeRemaining:     remaining,
-				ActivePlayers:     e.hub.GetActivePlayerCount(game.ID),
+				GameID:        game.ID,
+				RoundNumber:   game.RoundNumber,
+				Status:        domain.GameStatusWaiting,
+				TimeRemaining: remaining,
+				ActivePlayers: e.hub.GetActivePlayerCount(game.ID),
 			}
 
 			e.hub.BroadcastGameState(state)
@@ -152,7 +149,7 @@ func (e *CrashGameEngine) bettingPhase(ctx context.Context, game *domain.Game) {
 }
 
 func (e *CrashGameEngine) flightPhase(ctx context.Context, game *domain.Game) {
-	log.Printf("Flight started for round %d. Will crash at %.2fx", game.RoundNumber, game.CrashPoint)
+	log.Printf("Flight started for round %d. Will crash at %s", game.RoundNumber, game.CrashPoint.String())
 
 	// Update game status
 	game.Status = domain.GameStatusRunning
@@ -165,14 +162,20 @@ func (e *CrashGameEngine) flightPhase(ctx context.Context, game *domain.Game) {
 	ticker := time.NewTicker(e.tickInterval)
 	defer ticker.Stop()
 
-	for currentMultiplier.LessThan(game.CrashPoint) {
+	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			// Check if we should crash
+			if currentMultiplier.GreaterThanOrEqual(game.CrashPoint) {
+				goto CRASH
+			}
+
+			// Increase multiplier
 			currentMultiplier = currentMultiplier.Add(increment)
 
-			// Broadcast current multiplier
+			// Broadcast current state
 			state := &GameState{
 				GameID:            game.ID,
 				RoundNumber:       game.RoundNumber,
@@ -182,21 +185,17 @@ func (e *CrashGameEngine) flightPhase(ctx context.Context, game *domain.Game) {
 			}
 
 			e.hub.BroadcastGameState(state)
-
-			// Check if we've reached the crash point
-			if currentMultiplier.GreaterThanOrEqual(game.CrashPoint) {
-				break
-			}
 		}
 	}
 
+CRASH:
 	// CRASH!
 	game.Status = domain.GameStatusCrashed
 	now := time.Now()
 	game.CrashedAt = &now
 	e.gameRepo.UpdateStatus(ctx, game.ID, domain.GameStatusCrashed)
 
-	log.Printf("CRASHED at %.2fx", game.CrashPoint)
+	log.Printf("CRASHED at %s", game.CrashPoint.String())
 
 	// Broadcast crash event
 	state := &GameState{
@@ -225,31 +224,25 @@ func (e *CrashGameEngine) settlementPhase(ctx context.Context, game *domain.Game
 	losersCount := 0
 
 	for _, bet := range bets {
-		if bet.CashedOut {
-			// Player cashed out before crash - they won
+		if bet.CashoutAt != nil {
+			// User cashed out - they win
 			winnersCount++
-			bet.Status = domain.GameBetStatusWon
+			// Payout already processed during cashout
 		} else {
-			// Player didn't cash out - they lost
+			// User didn't cash out - they lose
 			losersCount++
 			bet.Status = domain.GameBetStatusLost
-			bet.Payout = decimal.Zero
 		}
-
-		// In production, update wallet balances here
 	}
 
-	log.Printf("✅ Round %d settled: %d winners, %d losers", game.RoundNumber, winnersCount, losersCount)
+	log.Printf("Round %d settled: %d winners, %d losers", game.RoundNumber, winnersCount, losersCount)
 }
 
-// HandleCashout processes a player's cashout request
-func (e *CrashGameEngine) HandleCashout(ctx context.Context, betID uuid.UUID, currentMultiplier decimal.Decimal) error {
-	// This would be called from the WebSocket handler when a player clicks "Cashout"
-
-	// 1. Validate the bet exists and is active
-	// 2. Calculate payout: bet.Amount * currentMultiplier
-	// 3. Update bet status to CASHED_OUT
-	// 4. Credit wallet immediately
+// ProcessCashout handles a user cashing out during the flight phase
+func (e *CrashGameEngine) ProcessCashout(ctx context.Context, betID uuid.UUID, currentMultiplier decimal.Decimal) error {
+	// 1. Calculate payout: bet.Amount * currentMultiplier
+	// 2. Update bet status to CASHED_OUT
+	// 3. Credit wallet immediately
 
 	payout := decimal.NewFromInt(100).Mul(currentMultiplier) // Example
 
@@ -257,7 +250,18 @@ func (e *CrashGameEngine) HandleCashout(ctx context.Context, betID uuid.UUID, cu
 		return err
 	}
 
-	log.Printf("Cashout processed: Bet %s at %.2fx = %.2f", betID, currentMultiplier, payout)
+	log.Printf("Cashout processed: Bet %s at %s = %s", betID, currentMultiplier.String(), payout.String())
 
 	return nil
+}
+
+// GameState represents the current state of a crash game
+type GameState struct {
+	GameID            uuid.UUID         `json:"game_id"`
+	RoundNumber       int64             `json:"round_number"`
+	Status            domain.GameStatus `json:"status"`
+	CurrentMultiplier decimal.Decimal   `json:"current_multiplier"`
+	CrashPoint        *decimal.Decimal  `json:"crash_point,omitempty"`
+	TimeRemaining     time.Duration     `json:"time_remaining,omitempty"`
+	ActivePlayers     int               `json:"active_players"`
 }
