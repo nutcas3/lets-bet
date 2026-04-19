@@ -1,4 +1,4 @@
-.PHONY: build run-all test migrate clean docker-build
+.PHONY: build run-all test lint vet migrate clean docker-build tidy
 
 # Build all services
 build:
@@ -8,6 +8,16 @@ build:
 	go build -o bin/engine ./cmd/engine
 	go build -o bin/settlement ./cmd/settlement
 	go build -o bin/games ./cmd/games
+	go build -o bin/migrate ./cmd/migrate
+
+tidy:
+	go mod tidy
+
+vet:
+	go vet ./...
+
+lint:
+	golangci-lint run ./...
 
 # Run all services locally (requires Docker for dependencies)
 run-all: build
@@ -18,7 +28,7 @@ run-all: build
 # Run database migrations
 migrate:
 	@echo "Running database migrations..."
-	go run scripts/migrate.go up
+	go run ./cmd/migrate -dir ./migrations
 
 # Run tests
 test:
