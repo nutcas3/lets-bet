@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/shopspring/decimal"
@@ -112,10 +113,8 @@ func DecimalInRange(field string, d, min, max decimal.Decimal) (string, bool) {
 
 // In validates that s is one of allowed values.
 func In(field, s string, allowed []string) (string, bool) {
-	for _, a := range allowed {
-		if s == a {
-			return "", true
-		}
+	if slices.Contains(allowed, s) {
+		return "", true
 	}
 	return fmt.Sprintf("%s must be one of %s", field, strings.Join(allowed, ", ")), false
 }
