@@ -10,8 +10,12 @@ import (
 
 // BCLBService handles Betting Control and Licensing Board compliance for Kenya
 type BCLBService struct {
-	eventBus EventBus
-	config   BCLBConfig
+	eventBus        EventBus
+	config          BCLBConfig
+	userRepo        UserRepository
+	betRepo         BetRepository
+	transactionRepo TransactionRepository
+	coolingOffRepo  CoolingOffRepository
 }
 
 // EventBus interface for publishing events
@@ -35,10 +39,21 @@ type BCLBConfig struct {
 }
 
 // NewBCLBService creates a new BCLB compliance service
-func NewBCLBService(eventBus EventBus, config BCLBConfig) *BCLBService {
+func NewBCLBService(
+	eventBus EventBus,
+	config BCLBConfig,
+	userRepo UserRepository,
+	betRepo BetRepository,
+	transactionRepo TransactionRepository,
+	coolingOffRepo CoolingOffRepository,
+) *BCLBService {
 	return &BCLBService{
-		eventBus: eventBus,
-		config:   config,
+		eventBus:        eventBus,
+		config:          config,
+		userRepo:        userRepo,
+		betRepo:         betRepo,
+		transactionRepo: transactionRepo,
+		coolingOffRepo:  coolingOffRepo,
 	}
 }
 
@@ -360,62 +375,199 @@ func (s *BCLBService) GenerateComplianceReport(ctx context.Context, period strin
 	return report, nil
 }
 
-// Helper methods (in real implementation, these would query database)
+// Helper methods with real database integration
 
 func (s *BCLBService) getUserLimits(userID string) *UserLimits {
+	// Get user-specific limits from database
+	user, err := s.userRepo.GetUser(context.Background(), userID)
+	if err != nil {
+		log.Printf("Error getting user %s: %v", userID, err)
+		// Return default limits if user not found
+		return &UserLimits{
+			UserID:       userID,
+			DailyLimit:   s.config.MaxDailyStake,
+			WeeklyLimit:  s.config.MaxWeeklyStake,
+			MonthlyLimit: s.config.MaxMonthlyStake,
+			MaxBetSize:   s.config.MaxBetPerEvent,
+			LastUpdated:  time.Now(),
+		}
+	}
+
+	// In a real implementation, user limits would be stored in a separate table
+	// For now, use config defaults but could be overridden by user-specific settings
 	return &UserLimits{
 		UserID:       userID,
 		DailyLimit:   s.config.MaxDailyStake,
 		WeeklyLimit:  s.config.MaxWeeklyStake,
 		MonthlyLimit: s.config.MaxMonthlyStake,
 		MaxBetSize:   s.config.MaxBetPerEvent,
-		LastUpdated:  time.Now(),
+		LastUpdated:  user.UpdatedAt,
 	}
 }
 
 func (s *BCLBService) isAgeVerified(userID string) bool {
-	// In real implementation, check user's age verification status
-	return true
+	// Check user's age verification status from database
+	ageVerification, err := s.userRepo.GetUserAgeVerification(context.Background(), userID)
+	if err != nil {
+		log.Printf("Error getting age verification for user %s: %v", userID, err)
+		return false
+	}
+
+	// Check if verification is still valid
+	if !ageVerification.Verified {
+		return false
+	}
+
+	// Check if verification has expired
+	if time.Now().After(ageVerification.ExpiresAt) {
+		return false
+	}
+
+	// Additional check: verify user is actually old enough
+	user, err := s.userRepo.GetUser(context.Background(), userID)
+	if err != nil {
+		log.Printf("Error getting user %s for age check: %v", userID, err)
+		return false
+	}
+
+	// Calculate user's age
+	now := time.Now()
+	age := now.Year() - user.DateOfBirth.Year()
+
+	// Adjust for birthday not yet occurred this year
+	if now.Month() < user.DateOfBirth.Month() ||
+		(now.Month() == user.DateOfBirth.Month() && now.Day() < user.DateOfBirth.Day()) {
+		age--
+	}
+
+	return age >= s.config.MinAge
 }
 
 func (s *BCLBService) isKYCCompliant(userID string) bool {
-	// In real implementation, check user's KYC completion status
-	return true
+	// Check user's KYC status from database
+	kycStatus, err := s.userRepo.GetUserKYCStatus(context.Background(), userID)
+	if err != nil {
+		log.Printf("Error getting KYC status for user %s: %v", userID, err)
+		return false
+	}
+
+	// Check if KYC is verified and meets required level
+	if kycStatus.Status != "VERIFIED" {
+		return false
+	}
+
+	// Check if KYC level meets requirements
+	switch s.config.RequiredKYCLevel {
+	case "ENHANCED":
+		return kycStatus.Level == "ENHANCED"
+	case "STANDARD":
+		return kycStatus.Level == "STANDARD" || kycStatus.Level == "ENHANCED"
+	case "BASIC":
+		return kycStatus.Level == "BASIC" || kycStatus.Level == "STANDARD" || kycStatus.Level == "ENHANCED"
+	default:
+		return kycStatus.Status == "VERIFIED"
+	}
 }
 
 func (s *BCLBService) isSelfExcluded(userID string) bool {
-	// In real implementation, check user's self-exclusion status
-	return false
+	// Check user's self-exclusion status from database
+	selfExclusion, err := s.userRepo.GetUserSelfExclusion(context.Background(), userID)
+	if err != nil {
+		log.Printf("Error getting self-exclusion status for user %s: %v", userID, err)
+		return false
+	}
+
+	// Check if self-exclusion is active
+	if !selfExclusion.Active {
+		return false
+	}
+
+	// Check if self-exclusion period has expired
+	if time.Now().After(selfExclusion.EndDate) {
+		// Self-exclusion has expired, update database
+		err = s.userRepo.UpdateSelfExclusion(context.Background(), userID, time.Time{}, "expired")
+		if err != nil {
+			log.Printf("Error updating expired self-exclusion for user %s: %v", userID, err)
+		}
+		return false
+	}
+
+	return true
 }
 
 func (s *BCLBService) getDailyStake(userID string) decimal.Decimal {
-	// In real implementation, calculate user's daily stake
-	return decimal.NewFromInt(5000)
+	// Calculate user's daily stake from database
+	today := time.Now().Truncate(24 * time.Hour) // Start of today
+	dailyStake, err := s.betRepo.GetUserDailyStake(context.Background(), userID, today)
+	if err != nil {
+		log.Printf("Error getting daily stake for user %s: %v", userID, err)
+		return decimal.Zero
+	}
+
+	return dailyStake
 }
 
 func (s *BCLBService) getWeeklyStake(userID string) decimal.Decimal {
-	// In real implementation, calculate user's weekly stake
-	return decimal.NewFromInt(25000)
+	// Calculate user's weekly stake from database
+	now := time.Now()
+	weekStart := now.AddDate(0, 0, -int(now.Weekday())) // Start of week (Sunday)
+	weeklyStake, err := s.betRepo.GetUserWeeklyStake(context.Background(), userID, weekStart)
+	if err != nil {
+		log.Printf("Error getting weekly stake for user %s: %v", userID, err)
+		return decimal.Zero
+	}
+
+	return weeklyStake
 }
 
 func (s *BCLBService) getMonthlyStake(userID string) decimal.Decimal {
-	// In real implementation, calculate user's monthly stake
-	return decimal.NewFromInt(100000)
+	// Calculate user's monthly stake from database
+	now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	monthlyStake, err := s.betRepo.GetUserMonthlyStake(context.Background(), userID, monthStart)
+	if err != nil {
+		log.Printf("Error getting monthly stake for user %s: %v", userID, err)
+		return decimal.Zero
+	}
+
+	return monthlyStake
 }
 
 func (s *BCLBService) isInCoolingOffPeriod(userID string) bool {
-	// In real implementation, check if user is in cooling off period
-	return false
+	// Check if user is in cooling off period from database
+	inCoolingOff, err := s.coolingOffRepo.IsUserInCoolingOffPeriod(context.Background(), userID)
+	if err != nil {
+		log.Printf("Error checking cooling off period for user %s: %v", userID, err)
+		return false
+	}
+
+	return inCoolingOff
 }
 
 func (s *BCLBService) isSuspiciousTransaction(userID string, amount decimal.Decimal, transactionType string) bool {
-	// In real implementation, implement AML pattern detection
-	return false
+	// Check for suspicious transaction patterns using database
+	isSuspicious, err := s.transactionRepo.IsSuspiciousTransaction(context.Background(), userID, amount, transactionType)
+	if err != nil {
+		log.Printf("Error checking suspicious transaction for user %s: %v", userID, err)
+		return false
+	}
+
+	return isSuspicious
 }
 
 func (s *BCLBService) exceedsTransactionFrequency(userID string) bool {
-	// In real implementation, check transaction frequency limits
-	return false
+	// Check transaction frequency limits using database
+	// Define frequency limit: max 100 transactions per hour
+	const maxTransactionsPerHour = 100
+	const oneHour = time.Hour
+
+	exceeds, err := s.transactionRepo.ExceedsTransactionFrequency(context.Background(), userID, maxTransactionsPerHour, oneHour)
+	if err != nil {
+		log.Printf("Error checking transaction frequency for user %s: %v", userID, err)
+		return false
+	}
+
+	return exceeds
 }
 
 func (s *BCLBService) logComplianceCheck(check *ComplianceCheck) {
