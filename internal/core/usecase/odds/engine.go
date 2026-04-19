@@ -26,14 +26,14 @@ type OddsProvider interface {
 
 // OddsCache interface for caching odds data
 type OddsCache interface {
-	Set(key string, odds interface{}, ttl time.Duration) error
-	Get(key string) (interface{}, error)
+	Set(key string, odds any, ttl time.Duration) error
+	Get(key string) (any, error)
 	Delete(key string) error
 }
 
 // EventBus interface for publishing odds updates
 type EventBus interface {
-	Publish(topic string, message interface{}) error
+	Publish(topic string, message any) error
 }
 
 func NewOddsEngine(provider OddsProvider, cache OddsCache, eventBus EventBus) *OddsEngine {
