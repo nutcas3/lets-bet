@@ -1,0 +1,56 @@
+{
+  "base_url": "http://localhost:8080",
+  "api_base": "http://localhost:8080/api/v1",
+  "tests": {
+    "basic_load_test": {
+      "description": "Basic load test for core platform functionality",
+      "file": "basic-load-test.js",
+      "max_users": 100000,
+      "duration": "30m",
+      "scenarios": ["health_check", "wallet_balance", "games", "bets", "transactions"]
+    },
+    "sports_betting_load_test": {
+      "description": "Sports betting specific load test",
+      "file": "sports-betting-load-test.js",
+      "max_users": 100000,
+      "duration": "40m",
+      "scenarios": ["sports_events", "live_betting", "bet_placement", "bet_settlement"]
+    },
+    "payment_load_test": {
+      "description": "Payment processing load test",
+      "file": "payment-load-test.js",
+      "max_users": 100000,
+      "duration": "45m",
+      "scenarios": ["mpesa_deposits", "flutterwave_deposits", "mpesa_withdrawals", "flutterwave_withdrawals"]
+    }
+  },
+  "thresholds": {
+    "http_req_duration": {
+      "p95": "<500ms",
+      "p99": "<1000ms"
+    },
+    "http_req_failed": {
+      "rate": "<0.1"
+    },
+    "errors": {
+      "rate": "<0.1"
+    }
+  },
+  "environments": {
+    "development": {
+      "base_url": "http://localhost:8080",
+      "max_users": 1000,
+      "duration": "10m"
+    },
+    "staging": {
+      "base_url": "https://staging.betting-platform.com",
+      "max_users": 10000,
+      "duration": "20m"
+    },
+    "production": {
+      "base_url": "https://api.betting-platform.com",
+      "max_users": 100000,
+      "duration": "30m"
+    }
+  }
+}
