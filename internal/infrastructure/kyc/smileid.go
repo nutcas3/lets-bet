@@ -41,7 +41,7 @@ func NewSmileIDProvider(cfg config.SmileIDConfig) (*SmileIDProvider, error) {
 	if cfg.APIKey == "" || cfg.PartnerID == "" {
 		return nil, ErrKYCNotConfigured
 	}
-	env := strings.ToLower(cfg.Env)
+	env := strings.ToLower(cfg.Environment)
 	if env == "" {
 		env = "sandbox"
 	}
