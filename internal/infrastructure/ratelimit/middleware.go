@@ -32,8 +32,8 @@ func (rl *RedisLimiter) HTTPMiddleware() func(http.Handler) http.Handler {
 			var err error
 
 			if userID != (uuid.UUID{}) {
-				// User is authenticated, check user and IP limits
-				result, err = rl.CheckLimits(ctx, userID, clientIP)
+				// User is authenticated, check user limit
+				result, err = rl.CheckUserLimit(ctx, userID)
 			} else {
 				// User is not authenticated, only check IP limit
 				result, err = rl.CheckIPLimit(ctx, clientIP)
@@ -168,8 +168,8 @@ func (rl *RedisLimiter) HTTPMiddlewareWithConfig(config RateLimitMiddlewareConfi
 			var err error
 
 			if hasUser {
-				// User is authenticated, check user and IP limits
-				result, err = rl.CheckLimits(ctx, userID, clientIP)
+				// User is authenticated, check user limit
+				result, err = rl.CheckUserLimit(ctx, userID)
 			} else {
 				// User is not authenticated, only check IP limit
 				result, err = rl.CheckIPLimit(ctx, clientIP)
