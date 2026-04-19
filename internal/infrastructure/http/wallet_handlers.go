@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -35,44 +36,80 @@ func (h *WalletHandler) healthCheckHandler(w http.ResponseWriter, r *http.Reques
 func (h *WalletHandler) getWalletHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["userId"]
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"user_id":"` + userID + `","balance":1000.00,"currency":"KES","bonus_balance":50.00}`))
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"user_id":       userID,
+		"balance":       1000.00,
+		"currency":      "KES",
+		"bonus_balance": 50.00,
+	}); err != nil {
+		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
+	}
 }
 
 func (h *WalletHandler) getBalanceHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["userId"]
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"user_id":"` + userID + `","balance":1000.00,"available":950.00}`))
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"user_id":   userID,
+		"balance":   1000.00,
+		"available": 950.00,
+	}); err != nil {
+		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
+	}
 }
 
 func (h *WalletHandler) debitHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["userId"]
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"user_id":"` + userID + `","status":"debited","amount":100.00}`))
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"user_id": userID,
+		"status":  "debited",
+		"amount":  100.00,
+	}); err != nil {
+		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
+	}
 }
 
 func (h *WalletHandler) creditHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["userId"]
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"user_id":"` + userID + `","status":"credited","amount":100.00}`))
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"user_id": userID,
+		"status":  "credited",
+		"amount":  100.00,
+	}); err != nil {
+		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
+	}
 }
 
 func (h *WalletHandler) getTransactionsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userID := vars["userId"]
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"user_id":"` + userID + `","transactions":[{"type":"debit","amount":100.00,"status":"completed"}]}`))
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"user_id": userID,
+		"transactions": []map[string]interface{}{
+			{
+				"type":   "debit",
+				"amount": 100.00,
+				"status": "completed",
+			},
+		},
+	}); err != nil {
+		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
+	}
 }

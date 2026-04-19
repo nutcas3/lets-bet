@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"math"
 	"time"
 
 	"github.com/betting-platform/internal/core/domain"
@@ -132,6 +134,10 @@ func (r *MatchRepository) Update(ctx context.Context, match *domain.Match) error
 	awayScore := sql.NullInt32{Int32: 0, Valid: false}
 
 	if match.Score != nil {
+		// Add bounds checking to prevent integer overflow
+		if match.Score.HomeScore > math.MaxInt32 || match.Score.AwayScore > math.MaxInt32 {
+			return fmt.Errorf("score values exceed int32 limits")
+		}
 		homeScore = sql.NullInt32{Int32: int32(match.Score.HomeScore), Valid: true}
 		awayScore = sql.NullInt32{Int32: int32(match.Score.AwayScore), Valid: true}
 	}
@@ -168,6 +174,10 @@ func (r *MatchRepository) UpdateScore(ctx context.Context, id string, score *dom
 	awayScore := sql.NullInt32{Int32: 0, Valid: false}
 
 	if score != nil {
+		// Add bounds checking to prevent integer overflow
+		if score.HomeScore > math.MaxInt32 || score.AwayScore > math.MaxInt32 {
+			return fmt.Errorf("score values exceed int32 limits")
+		}
 		homeScore = sql.NullInt32{Int32: int32(score.HomeScore), Valid: true}
 		awayScore = sql.NullInt32{Int32: int32(score.AwayScore), Valid: true}
 	}

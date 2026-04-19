@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -45,8 +46,14 @@ func (h *SettlementHandler) processSettlementsHandler(w http.ResponseWriter, r *
 func (h *SettlementHandler) getSettlementHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	settlementID := vars["id"]
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"id":"` + settlementID + `","status":"completed","amount":1000.00}`))
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"id":     settlementID,
+		"status": "completed",
+		"amount": 1000.00,
+	}); err != nil {
+		http.Error(w, `{"error":"failed to encode response"}`, http.StatusInternalServerError)
+	}
 }
