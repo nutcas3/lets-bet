@@ -27,23 +27,20 @@ func NewSecurityAuditService(eventBus EventBus, config SecurityConfig) *Security
 }
 
 // assessDataProtection performs data protection assessment
-func (s *SecurityAuditService) assessDataProtection(ctx context.Context) []SecurityFinding {
+func (s *SecurityAuditService) assessDataProtection(context.Context) []SecurityFinding {
 	// Implementation stub
-	_ = ctx // Suppress unused parameter warning
 	return []SecurityFinding{}
 }
 
 // assessNetwork performs network security assessment
-func (s *SecurityAuditService) assessNetwork(ctx context.Context) []SecurityFinding {
+func (s *SecurityAuditService) assessNetwork(context.Context) []SecurityFinding {
 	// Implementation stub
-	_ = ctx // Suppress unused parameter warning
 	return []SecurityFinding{}
 }
 
 // assessApplication performs application security assessment
-func (s *SecurityAuditService) assessApplication(ctx context.Context) []SecurityFinding {
+func (s *SecurityAuditService) assessApplication(context.Context) []SecurityFinding {
 	// Implementation stub
-	_ = ctx // Suppress unused parameter warning
 	return []SecurityFinding{}
 }
 

@@ -6,8 +6,7 @@ import (
 )
 
 // assessDataProcessing assesses data processing activities
-func assessDataProcessing(ctx context.Context) []DataProcessing {
-	_ = ctx // Use context to avoid unused parameter warning
+func assessDataProcessing(context.Context) []DataProcessing {
 	return []DataProcessing{
 		{
 			ID:          generateID(),
@@ -37,8 +36,7 @@ func assessDataProcessing(ctx context.Context) []DataProcessing {
 }
 
 // assessDataSubjects assesses data subject information
-func assessDataSubjects(ctx context.Context) []DataSubject {
-	_ = ctx // Use context to avoid unused parameter warning
+func assessDataSubjects(context.Context) []DataSubject {
 	return []DataSubject{
 		{
 			ID:           generateID(),
@@ -62,8 +60,7 @@ func assessDataSubjects(ctx context.Context) []DataSubject {
 }
 
 // assessGDPRRights assesses GDPR rights implementation
-func assessGDPRRights(ctx context.Context) []GDPRRight {
-	_ = ctx // Use context to avoid unused parameter warning
+func assessGDPRRights(context.Context) []GDPRRight {
 	return []GDPRRight{
 		{
 			ID:          generateID(),
@@ -101,8 +98,7 @@ func assessGDPRRights(ctx context.Context) []GDPRRight {
 }
 
 // assessBreachHistory assesses data breach history
-func assessBreachHistory(ctx context.Context) []DataBreach {
-	_ = ctx // Use context to avoid unused parameter warning
+func assessBreachHistory(context.Context) []DataBreach {
 	return []DataBreach{
 		{
 			ID:           generateID(),
@@ -130,8 +126,7 @@ func assessBreachHistory(ctx context.Context) []DataBreach {
 }
 
 // assessConsentRecords assesses consent records
-func assessConsentRecords(ctx context.Context) []ConsentRecord {
-	_ = ctx // Use context to avoid unused parameter warning
+func assessConsentRecords(context.Context) []ConsentRecord {
 	return []ConsentRecord{
 		{
 			ID:        generateID(),
@@ -159,8 +154,7 @@ func assessConsentRecords(ctx context.Context) []ConsentRecord {
 }
 
 // assessGDPRViolations assesses GDPR compliance violations
-func assessGDPRViolations(ctx context.Context) []GDPRViolation {
-	_ = ctx // Use context to avoid unused parameter warning
+func assessGDPRViolations(context.Context) []GDPRViolation {
 	return []GDPRViolation{
 		{
 			ID:          generateID(),

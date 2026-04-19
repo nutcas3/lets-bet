@@ -7,7 +7,6 @@ import (
 
 // assessAuthentication performs authentication security audit
 func assessAuthentication(ctx context.Context, config SecurityConfig) []SecurityFinding {
-	_ = ctx // Use context to avoid unused parameter warning
 	var findings []SecurityFinding
 
 	// Check password policies
@@ -46,8 +45,7 @@ func assessAuthentication(ctx context.Context, config SecurityConfig) []Security
 }
 
 // assessAuthorization performs authorization security audit
-func assessAuthorization(ctx context.Context) []SecurityFinding {
-	_ = ctx // Use context to avoid unused parameter warning
+func assessAuthorization(context.Context) []SecurityFinding {
 	var findings []SecurityFinding
 
 	// Check for proper role-based access control
@@ -69,7 +67,6 @@ func assessAuthorization(ctx context.Context) []SecurityFinding {
 
 // _assessDataProtection performs data protection security audit
 func _assessDataProtection(ctx context.Context, config SecurityConfig) []SecurityFinding {
-	_ = ctx // Use context to avoid unused parameter warning
 	var findings []SecurityFinding
 
 	// Check encryption at rest
@@ -108,8 +105,7 @@ func _assessDataProtection(ctx context.Context, config SecurityConfig) []Securit
 }
 
 // _assessApplication performs application security audit
-func _assessApplication(ctx context.Context) []SecurityFinding {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessApplication(context.Context) []SecurityFinding {
 	var findings []SecurityFinding
 
 	// Check for input validation
@@ -144,8 +140,7 @@ func _assessApplication(ctx context.Context) []SecurityFinding {
 }
 
 // _assessNetwork performs network security audit
-func _assessNetwork(ctx context.Context) []SecurityFinding {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessNetwork(context.Context) []SecurityFinding {
 	var findings []SecurityFinding
 
 	// Check for HTTPS enforcement
@@ -166,8 +161,7 @@ func _assessNetwork(ctx context.Context) []SecurityFinding {
 }
 
 // _assessInfrastructure performs infrastructure security audit
-func _assessInfrastructure(ctx context.Context) []SecurityFinding {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessInfrastructure(context.Context) []SecurityFinding {
 	var findings []SecurityFinding
 
 	// Check for regular updates
@@ -188,8 +182,7 @@ func _assessInfrastructure(ctx context.Context) []SecurityFinding {
 }
 
 // _assessCompliance performs compliance security audit
-func _assessCompliance(ctx context.Context) []SecurityFinding {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessCompliance(context.Context) []SecurityFinding {
 	var findings []SecurityFinding
 
 	// Check for regulatory compliance
