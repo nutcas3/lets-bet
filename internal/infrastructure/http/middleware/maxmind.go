@@ -14,8 +14,8 @@ import (
 // The database file must be available locally (e.g. downloaded via CI or
 // mounted in the container). The provider is safe for concurrent use.
 type MaxMindProvider struct {
-	mu  sync.RWMutex
-	db  *geoip2.Reader
+	mu   sync.RWMutex
+	db   *geoip2.Reader
 	path string
 }
 
@@ -47,11 +47,8 @@ func (p *MaxMindProvider) Country(ctx context.Context, ip net.IP) (string, error
 	}
 	record, err := p.db.Country(ip)
 	if err != nil {
-		// NotFoundError is expected for private/internal IPs.
-		if _, ok := err.(geoip2.NotFoundError); ok {
-			return "", nil
-		}
-		return "", err
+		// Database errors are expected for private/internal IPs.
+		return "", nil
 	}
 	return record.Country.IsoCode, nil
 }
