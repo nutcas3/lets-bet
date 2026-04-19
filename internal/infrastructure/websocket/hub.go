@@ -60,7 +60,7 @@ func (h *Hub) GetActivePlayerCount(gameID uuid.UUID) int {
 }
 
 // BroadcastGameState implements the WebSocketHub interface
-func (h *Hub) BroadcastGameState(state interface{}) {
+func (h *Hub) BroadcastGameState(state any) {
 	// Convert state to JSON and broadcast
 	log.Printf("Broadcasting game state: %v", state)
 }
