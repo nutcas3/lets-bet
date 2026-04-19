@@ -3,77 +3,11 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
-	"github.com/betting-platform/internal/jackpots"
 	"github.com/shopspring/decimal"
 )
-
-// Jackpot types to avoid import cycle
-type JackpotType string
-type JackpotStatus string
-type TicketStatus string
-
-const (
-	JackpotTypeDaily       JackpotType = "DAILY"
-	JackpotTypeWeekly      JackpotType = "WEEKLY"
-	JackpotTypeMonthly     JackpotType = "MONTHLY"
-	JackpotTypeProgressive JackpotType = "PROGRESSIVE"
-	JackpotTypeMystery     JackpotType = "MYSTERY"
-)
-
-const (
-	JackpotStatusActive  JackpotStatus = "ACTIVE"
-	JackpotStatusPaused  JackpotStatus = "PAUSED"
-	JackpotStatusSettled JackpotStatus = "SETTLED"
-	JackpotStatusExpired JackpotStatus = "EXPIRED"
-)
-
-const (
-	TicketStatusActive  TicketStatus = "ACTIVE"
-	TicketStatusDrawn   TicketStatus = "DRAWN"
-	TicketStatusWon     TicketStatus = "WON"
-	TicketStatusExpired TicketStatus = "EXPIRED"
-)
-
-// Jackpot represents a jackpot game
-type Jackpot struct {
-	ID               string          `json:"id"`
-	Name             string          `json:"name"`
-	Type             JackpotType     `json:"type"`
-	CurrentAmount    decimal.Decimal `json:"current_amount"`
-	SeedAmount       decimal.Decimal `json:"seed_amount"`
-	ContributionRate decimal.Decimal `json:"contribution_rate"`
-	MinBet           decimal.Decimal `json:"min_bet"`
-	MaxBet           decimal.Decimal `json:"max_bet"`
-	Status           JackpotStatus   `json:"status"`
-	CreatedAt        time.Time       `json:"created_at"`
-	LastWonAt        *time.Time      `json:"last_won_at,omitempty"`
-	LastWonBy        string          `json:"last_won_by,omitempty"`
-	NextDrawAt       *time.Time      `json:"next_draw_at,omitempty"`
-}
-
-// JackpotTicket represents a jackpot ticket
-type JackpotTicket struct {
-	ID        string          `json:"id"`
-	JackpotID string          `json:"jackpot_id"`
-	UserID    string          `json:"user_id"`
-	BetAmount decimal.Decimal `json:"bet_amount"`
-	Numbers   []int           `json:"numbers"`
-	Status    TicketStatus    `json:"status"`
-	CreatedAt time.Time       `json:"created_at"`
-	DrawnAt   *time.Time      `json:"drawn_at,omitempty"`
-	Won       bool            `json:"won"`
-	Prize     decimal.Decimal `json:"prize"`
-}
-
-// JackpotResult represents a jackpot draw result
-type JackpotResult struct {
-	JackpotID      string    `json:"jackpot_id"`
-	WinningNumbers []int     `json:"winning_numbers"`
-	TotalTickets   int       `json:"total_tickets"`
-	DrawnAt        time.Time `json:"drawn_at"`
-}
 
 // JackpotRepository implements jackpot repository using PostgreSQL
 type JackpotRepository struct {
@@ -85,89 +19,111 @@ func NewJackpotRepository(db *sql.DB) *JackpotRepository {
 	return &JackpotRepository{db: db}
 }
 
-// Create creates a new jackpot
-func (r *JackpotRepository) Create(ctx context.Context, jackpot *Jackpot) error {
+// CreateJackpot creates a new jackpot
+func (r *JackpotRepository) CreateJackpot(ctx context.Context, jackpot *Jackpot) error {
 	query := `
 		INSERT INTO jackpots (
 			id, name, type, current_amount, seed_amount, contribution_rate,
-			min_bet, max_bet, status, created_at, last_won_at, last_won_by, next_draw_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			min_bet, max_bet, status, created_at, updated_at, expires_at, next_draw_at,
+			description, is_active, winning_numbers, winner_id, winner_amount
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
 		jackpot.ID, jackpot.Name, string(jackpot.Type), jackpot.CurrentAmount,
 		jackpot.SeedAmount, jackpot.ContributionRate, jackpot.MinBet, jackpot.MaxBet,
-		string(jackpot.Status), jackpot.CreatedAt, jackpot.LastWonAt,
-		jackpot.LastWonBy, jackpot.NextDrawAt,
+		string(jackpot.Status), jackpot.CreatedAt, jackpot.UpdatedAt, jackpot.ExpiresAt,
+		jackpot.NextDrawAt, jackpot.Description, jackpot.IsActive,
+		jackpot.WinningNumbers, jackpot.WinnerID, jackpot.WinnerAmount,
 	)
 
 	return err
 }
 
-// GetByID retrieves a jackpot by ID
-func (r *JackpotRepository) GetByID(ctx context.Context, id string) (*Jackpot, error) {
+// GetJackpot retrieves a jackpot by ID
+func (r *JackpotRepository) GetJackpot(ctx context.Context, id string) (*Jackpot, error) {
 	query := `
 		SELECT id, name, type, current_amount, seed_amount, contribution_rate,
-			   min_bet, max_bet, status, created_at, last_won_at, last_won_by, next_draw_at
-		FROM jackpots
-		WHERE id = $1
+			   min_bet, max_bet, status, created_at, updated_at, expires_at, next_draw_at,
+			   description, is_active, winning_numbers, winner_id, winner_amount
+		FROM jackpots WHERE id = $1
 	`
 
 	var jackpot Jackpot
-	var jackpotType, status string
-	var lastWonAt, nextDrawAt sql.NullTime
+	var winningNumbers []int
+	var winnerID *string
+	var winnerAmount decimal.Decimal
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&jackpot.ID, &jackpot.Name, &jackpotType, &jackpot.CurrentAmount,
+		&jackpot.ID, &jackpot.Name, &jackpot.Type, &jackpot.CurrentAmount,
 		&jackpot.SeedAmount, &jackpot.ContributionRate, &jackpot.MinBet, &jackpot.MaxBet,
-		&status, &jackpot.CreatedAt, &lastWonAt, &jackpot.LastWonBy, &nextDrawAt,
+		&jackpot.Status, &jackpot.CreatedAt, &jackpot.UpdatedAt, &jackpot.ExpiresAt,
+		&jackpot.NextDrawAt, &jackpot.Description, &jackpot.IsActive,
+		&winningNumbers, &winnerID, &winnerAmount,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	jackpot.Type = JackpotType(jackpotType)
-	jackpot.Status = JackpotStatus(status)
-
-	if lastWonAt.Valid {
-		jackpot.LastWonAt = &lastWonAt.Time
-	}
-
-	if nextDrawAt.Valid {
-		jackpot.NextDrawAt = &nextDrawAt.Time
-	}
+	jackpot.WinningNumbers = winningNumbers
+	jackpot.WinnerID = winnerID
+	jackpot.WinnerAmount = winnerAmount
 
 	return &jackpot, nil
 }
 
-// Update updates a jackpot
-func (r *JackpotRepository) Update(ctx context.Context, jackpot *Jackpot) error {
-	query := `
-		UPDATE jackpots
-		SET current_amount = $2, status = $3, last_won_at = $4, last_won_by = $5, next_draw_at = $6
-		WHERE id = $1
-	`
-
-	_, err := r.db.ExecContext(ctx, query,
-		jackpot.ID, jackpot.CurrentAmount, string(jackpot.Status),
-		jackpot.LastWonAt, jackpot.LastWonBy, jackpot.NextDrawAt,
-	)
-
-	return err
-}
-
-// GetActive retrieves all active jackpots
-func (r *JackpotRepository) GetActive(ctx context.Context) ([]*Jackpot, error) {
+// GetJackpots retrieves jackpots with optional filters
+func (r *JackpotRepository) GetJackpots(ctx context.Context, filters *JackpotFilters) ([]*Jackpot, error) {
 	query := `
 		SELECT id, name, type, current_amount, seed_amount, contribution_rate,
-			   min_bet, max_bet, status, created_at, last_won_at, last_won_by, next_draw_at
+			   min_bet, max_bet, status, created_at, updated_at, expires_at, next_draw_at,
+			   description, is_active, winning_numbers, winner_id, winner_amount
 		FROM jackpots
-		WHERE status = 'ACTIVE'
-		ORDER BY created_at ASC
+		WHERE 1=1
 	`
 
-	rows, err := r.db.QueryContext(ctx, query)
+	args := []any{}
+	argIndex := 1
+
+	if filters != nil {
+		if filters.Type != nil {
+			query += fmt.Sprintf(" AND type = $%d", argIndex)
+			args = append(args, string(*filters.Type))
+			argIndex++
+		}
+		if filters.Status != nil {
+			query += fmt.Sprintf(" AND status = $%d", argIndex)
+			args = append(args, string(*filters.Status))
+			argIndex++
+		}
+		if filters.IsActive != nil {
+			query += fmt.Sprintf(" AND is_active = $%d", argIndex)
+			args = append(args, *filters.IsActive)
+			argIndex++
+		}
+		if filters.From != nil {
+			query += fmt.Sprintf(" AND created_at >= $%d", argIndex)
+			args = append(args, *filters.From)
+			argIndex++
+		}
+		if filters.To != nil {
+			query += fmt.Sprintf(" AND created_at <= $%d", argIndex)
+			args = append(args, *filters.To)
+			argIndex++
+		}
+	}
+
+	query += " ORDER BY created_at DESC"
+
+	if filters != nil && filters.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT %d", filters.Limit)
+		if filters.Offset > 0 {
+			query += fmt.Sprintf(" OFFSET %d", filters.Offset)
+		}
+	}
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -176,95 +132,167 @@ func (r *JackpotRepository) GetActive(ctx context.Context) ([]*Jackpot, error) {
 	var jackpots []*Jackpot
 	for rows.Next() {
 		var jackpot Jackpot
-		var jackpotType, status string
-		var lastWonAt, nextDrawAt sql.NullTime
+		var winningNumbers []int
+		var winnerID *string
+		var winnerAmount decimal.Decimal
 
 		err := rows.Scan(
-			&jackpot.ID, &jackpot.Name, &jackpotType, &jackpot.CurrentAmount,
+			&jackpot.ID, &jackpot.Name, &jackpot.Type, &jackpot.CurrentAmount,
 			&jackpot.SeedAmount, &jackpot.ContributionRate, &jackpot.MinBet, &jackpot.MaxBet,
-			&status, &jackpot.CreatedAt, &lastWonAt, &jackpot.LastWonBy, &nextDrawAt,
+			&jackpot.Status, &jackpot.CreatedAt, &jackpot.UpdatedAt, &jackpot.ExpiresAt,
+			&jackpot.NextDrawAt, &jackpot.Description, &jackpot.IsActive,
+			&winningNumbers, &winnerID, &winnerAmount,
 		)
 
 		if err != nil {
 			return nil, err
 		}
 
-		jackpot.Type = JackpotType(jackpotType)
-		jackpot.Status = JackpotStatus(status)
-
-		if lastWonAt.Valid {
-			jackpot.LastWonAt = &lastWonAt.Time
-		}
-
-		if nextDrawAt.Valid {
-			jackpot.NextDrawAt = &nextDrawAt.Time
-		}
-
+		jackpot.WinningNumbers = winningNumbers
+		jackpot.WinnerID = winnerID
+		jackpot.WinnerAmount = winnerAmount
 		jackpots = append(jackpots, &jackpot)
 	}
 
 	return jackpots, nil
 }
 
+// UpdateJackpot updates an existing jackpot
+func (r *JackpotRepository) UpdateJackpot(ctx context.Context, jackpot *Jackpot) error {
+	query := `
+		UPDATE jackpots SET
+			name = $2, type = $3, current_amount = $4, seed_amount = $5,
+			contribution_rate = $6, min_bet = $7, max_bet = $8, status = $9,
+			updated_at = $10, expires_at = $11, next_draw_at = $12,
+			description = $13, is_active = $14, winning_numbers = $15,
+			winner_id = $16, winner_amount = $17
+		WHERE id = $1
+	`
+
+	_, err := r.db.ExecContext(ctx, query,
+		jackpot.ID, jackpot.Name, string(jackpot.Type), jackpot.CurrentAmount,
+		jackpot.SeedAmount, jackpot.ContributionRate, jackpot.MinBet, jackpot.MaxBet,
+		string(jackpot.Status), jackpot.UpdatedAt, jackpot.ExpiresAt,
+		jackpot.NextDrawAt, jackpot.Description, jackpot.IsActive,
+		jackpot.WinningNumbers, jackpot.WinnerID, jackpot.WinnerAmount,
+	)
+
+	return err
+}
+
+// DeleteJackpot deletes a jackpot
+func (r *JackpotRepository) DeleteJackpot(ctx context.Context, id string) error {
+	query := "DELETE FROM jackpots WHERE id = $1"
+	_, err := r.db.ExecContext(ctx, query, id)
+	return err
+}
+
 // CreateTicket creates a new jackpot ticket
 func (r *JackpotRepository) CreateTicket(ctx context.Context, ticket *JackpotTicket) error {
 	query := `
 		INSERT INTO jackpot_tickets (
-			id, jackpot_id, user_id, bet_amount, numbers, status, created_at, drawn_at, won, prize
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			id, jackpot_id, user_id, numbers, amount, status,
+			created_at, updated_at, drawn_at, won_at, prize_amount
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
-		ticket.ID, ticket.JackpotID, ticket.UserID, ticket.BetAmount,
-		ticket.Numbers, string(ticket.Status), ticket.CreatedAt,
-		ticket.DrawnAt, ticket.Won, ticket.Prize,
+		ticket.ID, ticket.JackpotID, ticket.UserID, ticket.Numbers,
+		ticket.Amount, string(ticket.Status), ticket.CreatedAt, ticket.UpdatedAt,
+		ticket.DrawnAt, ticket.WonAt, ticket.PrizeAmount,
 	)
 
 	return err
 }
 
-// DeleteTicket deletes a jackpot ticket
-func (r *JackpotRepository) DeleteTicket(ctx context.Context, ticketID string) error {
-	query := `DELETE FROM jackpot_tickets WHERE id = $1`
-	_, err := r.db.ExecContext(ctx, query, ticketID)
-	return err
-}
-
-// GetActiveTickets retrieves all active tickets for a jackpot
-func (r *JackpotRepository) GetActiveTickets(ctx context.Context, jackpotID string) ([]*jackpots.JackpotTicket, error) {
+// GetTicket retrieves a ticket by ID
+func (r *JackpotRepository) GetTicket(ctx context.Context, id string) (*JackpotTicket, error) {
 	query := `
-		SELECT id, jackpot_id, user_id, bet_amount, numbers, status, created_at, drawn_at, won, prize
-		FROM jackpot_tickets
-		WHERE jackpot_id = $1 AND status = 'ACTIVE'
-		ORDER BY created_at ASC
+		SELECT id, jackpot_id, user_id, numbers, amount, status,
+			   created_at, updated_at, drawn_at, won_at, prize_amount
+		FROM jackpot_tickets WHERE id = $1
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, jackpotID)
+	var ticket JackpotTicket
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
+		&ticket.ID, &ticket.JackpotID, &ticket.UserID, &ticket.Numbers,
+		&ticket.Amount, &ticket.Status, &ticket.CreatedAt, &ticket.UpdatedAt,
+		&ticket.DrawnAt, &ticket.WonAt, &ticket.PrizeAmount,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &ticket, nil
+}
+
+// GetTickets retrieves tickets with optional filters
+func (r *JackpotRepository) GetTickets(ctx context.Context, filters *TicketFilters) ([]*JackpotTicket, error) {
+	query := `
+		SELECT id, jackpot_id, user_id, numbers, amount, status,
+			   created_at, updated_at, drawn_at, won_at, prize_amount
+		FROM jackpot_tickets
+		WHERE 1=1
+	`
+
+	args := []any{}
+	argIndex := 1
+
+	if filters != nil {
+		if filters.JackpotID != nil {
+			query += fmt.Sprintf(" AND jackpot_id = $%d", argIndex)
+			args = append(args, *filters.JackpotID)
+			argIndex++
+		}
+		if filters.UserID != nil {
+			query += fmt.Sprintf(" AND user_id = $%d", argIndex)
+			args = append(args, *filters.UserID)
+			argIndex++
+		}
+		if filters.Status != nil {
+			query += fmt.Sprintf(" AND status = $%d", argIndex)
+			args = append(args, string(*filters.Status))
+			argIndex++
+		}
+		if filters.From != nil {
+			query += fmt.Sprintf(" AND created_at >= $%d", argIndex)
+			args = append(args, *filters.From)
+			argIndex++
+		}
+		if filters.To != nil {
+			query += fmt.Sprintf(" AND created_at <= $%d", argIndex)
+			args = append(args, *filters.To)
+			argIndex++
+		}
+	}
+
+	query += " ORDER BY created_at DESC"
+
+	if filters != nil && filters.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT %d", filters.Limit)
+		if filters.Offset > 0 {
+			query += fmt.Sprintf(" OFFSET %d", filters.Offset)
+		}
+	}
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var tickets []*jackpots.JackpotTicket
+	var tickets []*JackpotTicket
 	for rows.Next() {
-		var ticket jackpots.JackpotTicket
-		var status string
-		var drawnAt sql.NullTime
-
+		var ticket JackpotTicket
 		err := rows.Scan(
-			&ticket.ID, &ticket.JackpotID, &ticket.UserID, &ticket.BetAmount,
-			&ticket.Numbers, &status, &ticket.CreatedAt, &drawnAt,
-			&ticket.Won, &ticket.Prize,
+			&ticket.ID, &ticket.JackpotID, &ticket.UserID, &ticket.Numbers,
+			&ticket.Amount, &ticket.Status, &ticket.CreatedAt, &ticket.UpdatedAt,
+			&ticket.DrawnAt, &ticket.WonAt, &ticket.PrizeAmount,
 		)
 
 		if err != nil {
 			return nil, err
-		}
-
-		ticket.Status = jackpots.TicketStatus(status)
-
-		if drawnAt.Valid {
-			ticket.DrawnAt = &drawnAt.Time
 		}
 
 		tickets = append(tickets, &ticket)
@@ -273,110 +301,83 @@ func (r *JackpotRepository) GetActiveTickets(ctx context.Context, jackpotID stri
 	return tickets, nil
 }
 
-// GetUserTickets retrieves all tickets for a user
-func (r *JackpotRepository) GetUserTickets(ctx context.Context, userID string) ([]*jackpots.JackpotTicket, error) {
+// UpdateTicket updates an existing ticket
+func (r *JackpotRepository) UpdateTicket(ctx context.Context, ticket *JackpotTicket) error {
 	query := `
-		SELECT id, jackpot_id, user_id, bet_amount, numbers, status, created_at, drawn_at, won, prize
-		FROM jackpot_tickets
-		WHERE user_id = $1
-		ORDER BY created_at DESC
-	`
-
-	rows, err := r.db.QueryContext(ctx, query, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tickets []*jackpots.JackpotTicket
-	for rows.Next() {
-		var ticket jackpots.JackpotTicket
-		var status string
-		var drawnAt sql.NullTime
-
-		err := rows.Scan(
-			&ticket.ID, &ticket.JackpotID, &ticket.UserID, &ticket.BetAmount,
-			&ticket.Numbers, &status, &ticket.CreatedAt, &drawnAt,
-			&ticket.Won, &ticket.Prize,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		ticket.Status = jackpots.TicketStatus(status)
-
-		if drawnAt.Valid {
-			ticket.DrawnAt = &drawnAt.Time
-		}
-
-		tickets = append(tickets, &ticket)
-	}
-
-	return tickets, nil
-}
-
-// UpdateTicketStatus updates the status of a jackpot ticket
-func (r *JackpotRepository) UpdateTicketStatus(ctx context.Context, ticketID string, status jackpots.TicketStatus, prize decimal.Decimal) error {
-	query := `
-		UPDATE jackpot_tickets
-		SET status = $2, drawn_at = $3, won = $4, prize = $5
+		UPDATE jackpot_tickets SET
+			jackpot_id = $2, user_id = $3, numbers = $4, amount = $5,
+			status = $6, updated_at = $7, drawn_at = $8, won_at = $9, prize_amount = $10
 		WHERE id = $1
 	`
 
-	now := time.Now()
-	won := status == jackpots.TicketStatusWon
-
-	_, err := r.db.ExecContext(ctx, query, ticketID, string(status), now, won, prize)
-	return err
-}
-
-// GetJackpotHistory retrieves the history of jackpot draws
-func (r *JackpotRepository) GetJackpotHistory(ctx context.Context, jackpotID string, limit int) ([]*jackpots.JackpotResult, error) {
-	query := `
-		SELECT id, jackpot_id, winning_numbers, total_tickets, drawn_at
-		FROM jackpot_results
-		WHERE jackpot_id = $1
-		ORDER BY drawn_at DESC
-		LIMIT $2
-	`
-
-	rows, err := r.db.QueryContext(ctx, query, jackpotID, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var results []*jackpots.JackpotResult
-	for rows.Next() {
-		var result jackpots.JackpotResult
-		err := rows.Scan(
-			&result.JackpotID, &result.JackpotID, &result.WinningNumbers,
-			&result.TotalTickets, &result.DrawnAt,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		results = append(results, &result)
-	}
-
-	return results, nil
-}
-
-// SaveResult saves a jackpot draw result
-func (r *JackpotRepository) SaveResult(ctx context.Context, result *jackpots.JackpotResult) error {
-	query := `
-		INSERT INTO jackpot_results (
-			id, jackpot_id, winning_numbers, total_tickets, drawn_at
-		) VALUES ($1, $2, $3, $4, $5)
-	`
-
 	_, err := r.db.ExecContext(ctx, query,
-		result.JackpotID, result.JackpotID, result.WinningNumbers,
-		result.TotalTickets, result.DrawnAt,
+		ticket.ID, ticket.JackpotID, ticket.UserID, ticket.Numbers,
+		ticket.Amount, string(ticket.Status), ticket.UpdatedAt,
+		ticket.DrawnAt, ticket.WonAt, ticket.PrizeAmount,
 	)
 
 	return err
+}
+
+// GetMetrics returns jackpot statistics
+func (r *JackpotRepository) GetMetrics(ctx context.Context) (*JackpotMetrics, error) {
+	// Get total jackpots
+	var totalJackpots int64
+	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM jackpots").Scan(&totalJackpots)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get active jackpots
+	var activeJackpots int64
+	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM jackpots WHERE status = 'ACTIVE'").Scan(&activeJackpots)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get total tickets
+	var totalTickets int64
+	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM jackpot_tickets").Scan(&totalTickets)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get active tickets
+	var activeTickets int64
+	err = r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM jackpot_tickets WHERE status = 'ACTIVE'").Scan(&activeTickets)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get total contributions
+	var totalContributions decimal.Decimal
+	err = r.db.QueryRowContext(ctx, "SELECT COALESCE(SUM(amount), 0) FROM jackpot_tickets").Scan(&totalContributions)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get total payouts
+	var totalPayouts decimal.Decimal
+	err = r.db.QueryRowContext(ctx, "SELECT COALESCE(SUM(prize_amount), 0) FROM jackpot_tickets WHERE status = 'WON'").Scan(&totalPayouts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate average ticket value
+	var averageTicketValue decimal.Decimal
+	if totalTickets > 0 {
+		averageTicketValue = totalContributions.Div(decimal.NewFromInt(totalTickets))
+	}
+
+	return &JackpotMetrics{
+		TotalJackpots:      totalJackpots,
+		ActiveJackpots:     activeJackpots,
+		TotalTickets:       totalTickets,
+		ActiveTickets:      activeTickets,
+		TotalContributions: totalContributions,
+		TotalPayouts:       totalPayouts,
+		AverageTicketValue: averageTicketValue,
+		LastDrawTime:       time.Now(),
+		NextDrawTime:       time.Now().Add(24 * time.Hour),
+	}, nil
 }
