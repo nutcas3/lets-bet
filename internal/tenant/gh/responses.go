@@ -65,20 +65,20 @@ type FlutterwaveVerifyResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 	Data    struct {
-		ID            int          `json:"id"`
-		TxRef         string       `json:"tx_ref"`
-		FlwRef        string       `json:"flw_ref"`
-		Amount        string       `json:"amount"`
-		Currency      string       `json:"currency"`
-		Status        string       `json:"status"`
-		PaymentType   string       `json:"payment_type"`
-		PaymentMethod string       `json:"payment_method"`
-		Customer      CustomerInfo `json:"customer"`
+		ID            int            `json:"id"`
+		TxRef         string         `json:"tx_ref"`
+		FlwRef        string         `json:"flw_ref"`
+		Amount        string         `json:"amount"`
+		Currency      string         `json:"currency"`
+		Status        string         `json:"status"`
+		PaymentType   string         `json:"payment_type"`
+		PaymentMethod string         `json:"payment_method"`
+		Customer      CustomerInfo   `json:"customer"`
 		Meta          map[string]any `json:"meta"`
-		CreatedAt     string       `json:"created_at"`
-		ChargedAmount string       `json:"charged_amount"`
-		AppFee        string       `json:"app_fee"`
-		MerchantFee   string       `json:"merchant_fee"`
+		CreatedAt     string         `json:"created_at"`
+		ChargedAmount string         `json:"charged_amount"`
+		AppFee        string         `json:"app_fee"`
+		MerchantFee   string         `json:"merchant_fee"`
 	} `json:"data"`
 }
 
@@ -98,8 +98,8 @@ type PaymentData struct {
 	Currency      string          `json:"currency"`
 	Status        string          `json:"status"`
 	PaymentType   string          `json:"payment_type"`
-	Customer       CustomerInfo    `json:"customer"`
-	CreatedAt      time.Time       `json:"created_at"`
+	Customer      CustomerInfo    `json:"customer"`
+	CreatedAt     time.Time       `json:"created_at"`
 	ChargedAmount decimal.Decimal `json:"charged_amount"`
 	AppFee        decimal.Decimal `json:"app_fee"`
 	MerchantFee   decimal.Decimal `json:"merchant_fee"`

@@ -8,7 +8,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-
 type Movement struct {
 	UserID        string                 `json:"user_id"`
 	Amount        decimal.Decimal        `json:"amount"`
@@ -60,4 +59,3 @@ type EditBetResponse struct {
 	EditedAt         time.Time        `json:"edited_at"`
 	Reason           string           `json:"reason"`
 }
-

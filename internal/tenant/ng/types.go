@@ -61,8 +61,8 @@ type PaymentData struct {
 	Currency      string          `json:"currency"`
 	Status        string          `json:"status"`
 	PaymentType   string          `json:"payment_type"`
-	Customer       CustomerInfo    `json:"customer"`
-	CreatedAt      time.Time       `json:"created_at"`
+	Customer      CustomerInfo    `json:"customer"`
+	CreatedAt     time.Time       `json:"created_at"`
 	ChargedAmount decimal.Decimal `json:"charged_amount"`
 	AppFee        decimal.Decimal `json:"app_fee"`
 	MerchantFee   decimal.Decimal `json:"merchant_fee"`
@@ -83,8 +83,8 @@ type TransactionVerificationRequest struct {
 
 // TransactionVerificationResponse represents a verification response
 type TransactionVerificationResponse struct {
-	Status  string                    `json:"status"`
-	Message string                    `json:"message"`
+	Status  string                      `json:"status"`
+	Message string                      `json:"message"`
 	Data    TransactionVerificationData `json:"data"`
 }
 
@@ -97,8 +97,8 @@ type TransactionVerificationData struct {
 	Currency      string          `json:"currency"`
 	Status        string          `json:"status"`
 	PaymentType   string          `json:"payment_type"`
-	Customer       CustomerInfo    `json:"customer"`
-	CreatedAt      time.Time       `json:"created_at"`
+	Customer      CustomerInfo    `json:"customer"`
+	CreatedAt     time.Time       `json:"created_at"`
 	ChargedAmount decimal.Decimal `json:"charged_amount"`
 	AppFee        decimal.Decimal `json:"app_fee"`
 	MerchantFee   decimal.Decimal `json:"merchant_fee"`
@@ -111,9 +111,9 @@ type ProcessResponse struct {
 
 // RefundRequest represents a refund request
 type RefundRequest struct {
-	ID      string          `json:"id"`
-	Amount  decimal.Decimal `json:"amount"`
-	Reason  string          `json:"reason"`
+	ID     string          `json:"id"`
+	Amount decimal.Decimal `json:"amount"`
+	Reason string          `json:"reason"`
 }
 
 // RefundResponse represents a refund response
@@ -125,45 +125,45 @@ type RefundResponse struct {
 
 // RefundData contains refund response data
 type RefundData struct {
-	ID          string          `json:"id"`
-	TxRef       string          `json:"tx_ref"`
-	FlwRef      string          `json:"flw_ref"`
-	Amount      decimal.Decimal `json:"amount"`
-	Currency    string          `json:"currency"`
-	Status      string          `json:"status"`
-	RefundRef   string          `json:"refund_ref"`
-	CreatedAt   time.Time       `json:"created_at"`
+	ID        string          `json:"id"`
+	TxRef     string          `json:"tx_ref"`
+	FlwRef    string          `json:"flw_ref"`
+	Amount    decimal.Decimal `json:"amount"`
+	Currency  string          `json:"currency"`
+	Status    string          `json:"status"`
+	RefundRef string          `json:"refund_ref"`
+	CreatedAt time.Time       `json:"created_at"`
 }
 
 // WebhookEvent represents a Flutterwave webhook event
 type WebhookEvent struct {
-	Event       string      `json:"event"`
-	Data        WebhookData `json:"data"`
+	Event string      `json:"event"`
+	Data  WebhookData `json:"data"`
 }
 
 // WebhookData contains webhook event data
 type WebhookData struct {
-	ID             string          `json:"id"`
-	TxRef          string          `json:"tx_ref"`
-	FlwRef         string          `json:"flw_ref"`
-	Amount         decimal.Decimal `json:"amount"`
-	Currency       string          `json:"currency"`
-	Status         string          `json:"status"`
-	PaymentType    string          `json:"payment_type"`
-	Customer       CustomerInfo    `json:"customer"`
-	CreatedAt      time.Time       `json:"created_at"`
-	ChargedAmount  decimal.Decimal `json:"charged_amount"`
-	AppFee         decimal.Decimal `json:"app_fee"`
-	MerchantFee    decimal.Decimal `json:"merchant_fee"`
+	ID            string          `json:"id"`
+	TxRef         string          `json:"tx_ref"`
+	FlwRef        string          `json:"flw_ref"`
+	Amount        decimal.Decimal `json:"amount"`
+	Currency      string          `json:"currency"`
+	Status        string          `json:"status"`
+	PaymentType   string          `json:"payment_type"`
+	Customer      CustomerInfo    `json:"customer"`
+	CreatedAt     time.Time       `json:"created_at"`
+	ChargedAmount decimal.Decimal `json:"charged_amount"`
+	AppFee        decimal.Decimal `json:"app_fee"`
+	MerchantFee   decimal.Decimal `json:"merchant_fee"`
 }
 
 // FlutterwaveMetrics represents Flutterwave adapter metrics
 type FlutterwaveMetrics struct {
-	TotalTransactions    int64           `json:"total_transactions"`
-	SuccessfulTransactions int64        `json:"successful_transactions"`
-	FailedTransactions   int64           `json:"failed_transactions"`
-	TotalAmount          decimal.Decimal `json:"total_amount"`
-	SuccessRate          decimal.Decimal `json:"success_rate"`
-	AverageAmount        decimal.Decimal `json:"average_amount"`
-	LastTransactionTime  time.Time       `json:"last_transaction_time"`
+	TotalTransactions      int64           `json:"total_transactions"`
+	SuccessfulTransactions int64           `json:"successful_transactions"`
+	FailedTransactions     int64           `json:"failed_transactions"`
+	TotalAmount            decimal.Decimal `json:"total_amount"`
+	SuccessRate            decimal.Decimal `json:"success_rate"`
+	AverageAmount          decimal.Decimal `json:"average_amount"`
+	LastTransactionTime    time.Time       `json:"last_transaction_time"`
 }

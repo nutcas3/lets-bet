@@ -1,15 +1,7 @@
--- ============================================
--- BETTING PLATFORM DATABASE SCHEMA
--- For: Kenya, Nigeria, Ghana (Multi-tenant)
--- ============================================
-
 -- Enable extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ============================================
--- USERS TABLE
--- ============================================
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     phone_number VARCHAR(20) NOT NULL,
@@ -43,9 +35,6 @@ CREATE INDEX idx_users_country ON users(country_code);
 CREATE INDEX idx_users_phone ON users(phone_number);
 CREATE INDEX idx_users_status ON users(status);
 
--- ============================================
--- WALLETS TABLE (with optimistic locking)
--- ============================================
 CREATE TABLE wallets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id),
@@ -65,9 +54,6 @@ CREATE TABLE wallets (
 
 CREATE INDEX idx_wallets_user ON wallets(user_id);
 
--- ============================================
--- TRANSACTIONS TABLE (Immutable ledger)
--- ============================================
 CREATE TABLE transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     wallet_id UUID NOT NULL REFERENCES wallets(id),
@@ -141,9 +127,6 @@ CREATE INDEX idx_bets_status ON bets(status);
 CREATE INDEX idx_bets_country ON bets(country_code);
 CREATE INDEX idx_bets_placed ON bets(placed_at DESC);
 
--- ============================================
--- BET SELECTIONS TABLE
--- ============================================
 CREATE TABLE bet_selections (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     bet_id UUID NOT NULL REFERENCES bets(id) ON DELETE CASCADE,
@@ -163,9 +146,6 @@ CREATE INDEX idx_selections_bet ON bet_selections(bet_id);
 CREATE INDEX idx_selections_event ON bet_selections(event_id);
 CREATE INDEX idx_selections_status ON bet_selections(status);
 
--- ============================================
--- GAMES TABLE (Crash, Slots, Virtuals)
--- ============================================
 CREATE TABLE games (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     game_type VARCHAR(20) NOT NULL, -- CRASH, VIRTUAL, SLOT
@@ -196,9 +176,6 @@ CREATE INDEX idx_games_status ON games(status);
 CREATE INDEX idx_games_round ON games(round_number DESC);
 CREATE INDEX idx_games_started ON games(started_at DESC);
 
--- ============================================
--- GAME BETS TABLE (for crash games)
--- ============================================
 CREATE TABLE game_bets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     game_id UUID NOT NULL REFERENCES games(id),
@@ -221,9 +198,6 @@ CREATE INDEX idx_game_bets_game ON game_bets(game_id);
 CREATE INDEX idx_game_bets_user ON game_bets(user_id);
 CREATE INDEX idx_game_bets_status ON game_bets(status);
 
--- ============================================
--- AUDIT LOG (BCLB requirement)
--- ============================================
 CREATE TABLE audit_log (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID,
@@ -242,9 +216,6 @@ CREATE INDEX idx_audit_user ON audit_log(user_id);
 CREATE INDEX idx_audit_action ON audit_log(action);
 CREATE INDEX idx_audit_created ON audit_log(created_at DESC);
 
--- ============================================
--- UPDATED_AT TRIGGER (Auto-update timestamps)
--- ============================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN

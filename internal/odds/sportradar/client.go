@@ -10,6 +10,7 @@ import (
 
 	"github.com/betting-platform/internal/core/domain"
 )
+
 // DefaultSportradarConfig returns default configuration
 func DefaultSportradarConfig() *SportradarConfig {
 	return &SportradarConfig{
@@ -19,6 +20,7 @@ func DefaultSportradarConfig() *SportradarConfig {
 		RateLimit:   60, // 60 requests per minute
 	}
 }
+
 // NewSportradarClient creates a new Sportradar client
 func NewSportradarClient(config *SportradarConfig) *SportradarClient {
 	if config == nil {
@@ -31,6 +33,7 @@ func NewSportradarClient(config *SportradarConfig) *SportradarClient {
 		rateLimiter: NewRateLimiter(config.RateLimit, time.Minute),
 	}
 }
+
 // GetSports retrieves available sports
 func (s *SportradarClient) GetSports(ctx context.Context) ([]Sport, error) {
 	// Wait for rate limiter

@@ -220,15 +220,12 @@ type ResponsibleGamingConfig struct {
 // ProcessRequest processes a responsible gaming request
 func (s *ResponsibleGamingService) ProcessRequest(ctx context.Context, request any) error {
 	// Implementation stub
-	_ = ctx     // Suppress unused parameter warning
-	_ = request // Suppress unused parameter warning
 	return nil
 }
 
 // GetUserGamingProfile retrieves a user's gaming profile
 func (s *ResponsibleGamingService) GetUserGamingProfile(ctx context.Context, userID string) (any, error) {
 	// Implementation stub
-	_ = ctx // Suppress unused parameter warning
 	return map[string]any{
 		"user_id": userID,
 		"profile": map[string]any{},
@@ -238,8 +235,5 @@ func (s *ResponsibleGamingService) GetUserGamingProfile(ctx context.Context, use
 // SetGamingLimits sets gaming limits for a user
 func (s *ResponsibleGamingService) SetGamingLimits(ctx context.Context, userID string, limits any) error {
 	// Implementation stub
-	_ = ctx    // Suppress unused parameter warning
-	_ = userID // Suppress unused parameter warning
-	_ = limits // Suppress unused parameter warning
 	return nil
 }

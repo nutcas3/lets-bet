@@ -9,29 +9,29 @@ import (
 
 // MPesaDeposit represents an M-Pesa deposit transaction
 type MPesaDeposit struct {
-	ID                uuid.UUID  `json:"id" db:"id"`
-	
+	ID uuid.UUID `json:"id" db:"id"`
+
 	// M-Pesa transaction identifiers
-	MerchantRequestID string     `json:"merchant_request_id" db:"merchant_request_id"`
-	CheckoutRequestID string     `json:"checkout_request_id" db:"checkout_request_id"`
-	
+	MerchantRequestID string `json:"merchant_request_id" db:"merchant_request_id"`
+	CheckoutRequestID string `json:"checkout_request_id" db:"checkout_request_id"`
+
 	// User and amount details
 	UserID      uuid.UUID       `json:"user_id" db:"user_id"`
 	PhoneNumber string          `json:"phone_number" db:"phone_number"`
 	Amount      decimal.Decimal `json:"amount" db:"amount"`
 	Currency    string          `json:"currency" db:"currency"`
-	
+
 	// Transaction status and metadata
 	Status      MPesaDepositStatus `json:"status" db:"status"`
 	Reference   string             `json:"reference" db:"reference"`
 	Description string             `json:"description" db:"description"`
-	
+
 	// M-Pesa callback data
 	MpesaReceiptNumber *string    `json:"mpesa_receipt_number,omitempty" db:"mpesa_receipt_number"`
 	TransactionDate    *time.Time `json:"transaction_date,omitempty" db:"transaction_date"`
 	ResultCode         *string    `json:"result_code,omitempty" db:"result_code"`
 	ResultDesc         *string    `json:"result_desc,omitempty" db:"result_desc"`
-	
+
 	// Timestamps
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
@@ -49,9 +49,9 @@ const (
 
 // IsCompleted returns true if the deposit is in a final state
 func (d *MPesaDeposit) IsCompleted() bool {
-	return d.Status == MPesaDepositStatusCompleted || 
-		   d.Status == MPesaDepositStatusFailed || 
-		   d.Status == MPesaDepositStatusCancelled
+	return d.Status == MPesaDepositStatusCompleted ||
+		d.Status == MPesaDepositStatusFailed ||
+		d.Status == MPesaDepositStatusCancelled
 }
 
 // IsSuccessful returns true if the deposit was completed successfully

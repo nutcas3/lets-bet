@@ -8,8 +8,7 @@ import (
 )
 
 // _assessSelfExclusion assesses self-exclusion records
-func _assessSelfExclusion(ctx context.Context) []SelfExclusionRecord {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessSelfExclusion(context.Context) []SelfExclusionRecord {
 	return []SelfExclusionRecord{
 		{
 			ID:        generateID(),
@@ -33,8 +32,7 @@ func _assessSelfExclusion(ctx context.Context) []SelfExclusionRecord {
 }
 
 // _assessDepositLimits assesses deposit limit records
-func _assessDepositLimits(ctx context.Context) []DepositLimit {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessDepositLimits(context.Context) []DepositLimit {
 	return []DepositLimit{
 		{
 			ID:         generateID(),
@@ -60,8 +58,7 @@ func _assessDepositLimits(ctx context.Context) []DepositLimit {
 }
 
 // _assessBettingLimits assesses betting limit records
-func _assessBettingLimits(ctx context.Context) []BettingLimit {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessBettingLimits(context.Context) []BettingLimit {
 	return []BettingLimit{
 		{
 			ID:         generateID(),
@@ -87,8 +84,7 @@ func _assessBettingLimits(ctx context.Context) []BettingLimit {
 }
 
 // _assessTimeLimits assesses time limit records
-func _assessTimeLimits(ctx context.Context) []TimeLimit {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessTimeLimits(context.Context) []TimeLimit {
 	return []TimeLimit{
 		{
 			ID:         generateID(),
@@ -114,8 +110,7 @@ func _assessTimeLimits(ctx context.Context) []TimeLimit {
 }
 
 // _assessCoolingOffPeriods assesses cooling off period records
-func _assessCoolingOffPeriods(ctx context.Context) []CoolingOffRecord {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessCoolingOffPeriods(context.Context) []CoolingOffRecord {
 	return []CoolingOffRecord{
 		{
 			ID:        generateID(),
@@ -139,8 +134,7 @@ func _assessCoolingOffPeriods(ctx context.Context) []CoolingOffRecord {
 }
 
 // _assessInterventions assesses intervention records
-func _assessInterventions(ctx context.Context) []Intervention {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessInterventions(context.Context) []Intervention {
 	return []Intervention{
 		{
 			ID:      generateID(),
@@ -166,8 +160,7 @@ func _assessInterventions(ctx context.Context) []Intervention {
 }
 
 // _assessEducation assesses education materials
-func _assessEducation(ctx context.Context) []EducationMaterial {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessEducation(context.Context) []EducationMaterial {
 	return []EducationMaterial{
 		{
 			ID:        generateID(),
@@ -193,8 +186,7 @@ func _assessEducation(ctx context.Context) []EducationMaterial {
 }
 
 // _assessViolations assesses responsible gaming violations
-func _assessViolations(ctx context.Context) []RGViolation {
-	_ = ctx // Use context to avoid unused parameter warning
+func _assessViolations(context.Context) []RGViolation {
 	return []RGViolation{
 		{
 			ID:          generateID(),

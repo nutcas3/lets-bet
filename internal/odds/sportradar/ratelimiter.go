@@ -8,19 +8,19 @@ import (
 
 // RateLimiter provides rate limiting for API requests
 type RateLimiter struct {
-	mu       sync.Mutex
-	tokens   int
-	maxTokens int
-	interval time.Duration
+	mu         sync.Mutex
+	tokens     int
+	maxTokens  int
+	interval   time.Duration
 	lastRefill time.Time
 }
 
 // NewRateLimiter creates a new rate limiter
 func NewRateLimiter(maxTokens int, interval time.Duration) *RateLimiter {
 	return &RateLimiter{
-		maxTokens: maxTokens,
-		tokens:   maxTokens,
-		interval: interval,
+		maxTokens:  maxTokens,
+		tokens:     maxTokens,
+		interval:   interval,
 		lastRefill: time.Now(),
 	}
 }

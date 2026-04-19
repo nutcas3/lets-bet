@@ -8,37 +8,37 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	_ "github.com/lib/pq"
+	"github.com/shopspring/decimal"
 )
 
 // FlutterwaveDeposit represents a Flutterwave deposit in the database
 type FlutterwaveDeposit struct {
-	ID              uuid.UUID       `json:"id" db:"id"`
-	UserID          uuid.UUID       `json:"user_id" db:"user_id"`
-	DepositID       string          `json:"deposit_id" db:"deposit_id"`
-	TransactionID   string          `json:"transaction_id" db:"transaction_id"`
-	Reference       string          `json:"reference" db:"reference"`
-	PaymentLink     string          `json:"payment_link" db:"payment_link"`
-	Amount          decimal.Decimal `json:"amount" db:"amount"`
-	Currency        string          `json:"currency" db:"currency"`
-	Email           string          `json:"email" db:"email"`
-	PhoneNumber     string          `json:"phone_number" db:"phone_number"`
-	Status          string          `json:"status" db:"status"`
-	PaymentMethod   string          `json:"payment_method" db:"payment_method"`
-	ProviderName    string          `json:"provider_name" db:"provider_name"`
-	ProviderTxnID   string          `json:"provider_txn_id" db:"provider_txn_id"`
-	FlutterwaveRef  string          `json:"flutterwave_ref" db:"flutterwave_ref"`
-	Network         string          `json:"network" db:"network"`
-	ProcessedAt     *time.Time      `json:"processed_at" db:"processed_at"`
-	CompletedAt     *time.Time      `json:"completed_at" db:"completed_at"`
-	FailureReason   *string         `json:"failure_reason" db:"failure_reason"`
-	AppFee          decimal.Decimal `json:"app_fee" db:"app_fee"`
-	MerchantFee     decimal.Decimal `json:"merchant_fee" db:"merchant_fee"`
-	TotalFees       decimal.Decimal `json:"total_fees" db:"total_fees"`
-	Meta            json.RawMessage `json:"meta" db:"meta"`
-	CreatedAt       time.Time       `json:"created_at" db:"created_at"`
-	UpdatedAt       time.Time       `json:"updated_at" db:"updated_at"`
+	ID             uuid.UUID       `json:"id" db:"id"`
+	UserID         uuid.UUID       `json:"user_id" db:"user_id"`
+	DepositID      string          `json:"deposit_id" db:"deposit_id"`
+	TransactionID  string          `json:"transaction_id" db:"transaction_id"`
+	Reference      string          `json:"reference" db:"reference"`
+	PaymentLink    string          `json:"payment_link" db:"payment_link"`
+	Amount         decimal.Decimal `json:"amount" db:"amount"`
+	Currency       string          `json:"currency" db:"currency"`
+	Email          string          `json:"email" db:"email"`
+	PhoneNumber    string          `json:"phone_number" db:"phone_number"`
+	Status         string          `json:"status" db:"status"`
+	PaymentMethod  string          `json:"payment_method" db:"payment_method"`
+	ProviderName   string          `json:"provider_name" db:"provider_name"`
+	ProviderTxnID  string          `json:"provider_txn_id" db:"provider_txn_id"`
+	FlutterwaveRef string          `json:"flutterwave_ref" db:"flutterwave_ref"`
+	Network        string          `json:"network" db:"network"`
+	ProcessedAt    *time.Time      `json:"processed_at" db:"processed_at"`
+	CompletedAt    *time.Time      `json:"completed_at" db:"completed_at"`
+	FailureReason  *string         `json:"failure_reason" db:"failure_reason"`
+	AppFee         decimal.Decimal `json:"app_fee" db:"app_fee"`
+	MerchantFee    decimal.Decimal `json:"merchant_fee" db:"merchant_fee"`
+	TotalFees      decimal.Decimal `json:"total_fees" db:"total_fees"`
+	Meta           json.RawMessage `json:"meta" db:"meta"`
+	CreatedAt      time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at" db:"updated_at"`
 }
 
 // FlutterwaveDepositRepository provides database operations for Flutterwave deposits

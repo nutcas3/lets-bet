@@ -20,11 +20,11 @@ func TestRequired(t *testing.T) {
 func TestEmail(t *testing.T) {
 	t.Parallel()
 	cases := map[string]bool{
-		"alice@example.com":     true,
+		"alice@example.com":      true,
 		"alice+label@example.io": true,
-		"not-an-email":          false,
-		"":                      false,
-		"@example.com":          false,
+		"not-an-email":           false,
+		"":                       false,
+		"@example.com":           false,
 	}
 	for in, want := range cases {
 		_, ok := validation.Email("email", in)
@@ -37,11 +37,11 @@ func TestEmail(t *testing.T) {
 func TestKenyaPhone(t *testing.T) {
 	t.Parallel()
 	cases := map[string]bool{
-		"254712345678": true,
-		"0712345678":   true,
+		"254712345678":  true,
+		"0712345678":    true,
 		"+254712345678": true,
-		"1234":         false,
-		"abc":          false,
+		"1234":          false,
+		"abc":           false,
 	}
 	for in, want := range cases {
 		_, ok := validation.KenyaPhone("phone", in)

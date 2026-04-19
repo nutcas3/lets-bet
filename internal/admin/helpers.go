@@ -25,9 +25,9 @@ func getOverviewStats(ctx context.Context) OverviewStats {
 
 // getRecentActivity retrieves recent activity items
 func getRecentActivity(ctx context.Context, limit int) []ActivityItem {
-	_ = ctx // Use context to avoid unused parameter warning
+	_ = ctx   // Use context to avoid unused parameter warning
 	_ = limit // Use limit to avoid unused parameter warning
-	
+
 	return []ActivityItem{
 		{
 			ID:          "act_001",
@@ -61,9 +61,9 @@ func getRecentActivity(ctx context.Context, limit int) []ActivityItem {
 
 // getTopUsers retrieves top users by activity
 func getTopUsers(ctx context.Context, limit int) []UserStats {
-	_ = ctx // Use context to avoid unused parameter warning
+	_ = ctx   // Use context to avoid unused parameter warning
 	_ = limit // Use limit to avoid unused parameter warning
-	
+
 	return []UserStats{
 		{
 			UserID:       "user_001",
@@ -175,10 +175,10 @@ func getSystemHealth(ctx context.Context) SystemHealth {
 			LastCheck:   time.Now(),
 		},
 		API: APIStatus{
-			Status:              "Operational",
-			ResponseTime:         150 * time.Millisecond,
-			RequestsPerSecond:   decimal.NewFromFloat(125.5),
-			LastCheck:           time.Now(),
+			Status:            "Operational",
+			ResponseTime:      150 * time.Millisecond,
+			RequestsPerSecond: decimal.NewFromFloat(125.5),
+			LastCheck:         time.Now(),
 		},
 		LoadAverage: []float64{0.5, 0.6, 0.7},
 		MemoryUsage: MemoryUsage{

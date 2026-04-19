@@ -17,24 +17,24 @@ import (
 
 // Subject names. Add new ones here rather than sprinkling strings around.
 const (
-	SubjectBetPlaced     = "bet.placed"
-	SubjectBetSettled    = "bet.settled"
-	SubjectWalletCredit  = "wallet.credit"
-	SubjectWalletDebit   = "wallet.debit"
-	SubjectDepositOK     = "deposit.completed"
-	SubjectWithdrawalOK  = "withdrawal.completed"
-	SubjectGameRoundEnd  = "game.round.ended"
-	SubjectKYCCompleted  = "kyc.completed"
+	SubjectBetPlaced    = "bet.placed"
+	SubjectBetSettled   = "bet.settled"
+	SubjectWalletCredit = "wallet.credit"
+	SubjectWalletDebit  = "wallet.debit"
+	SubjectDepositOK    = "deposit.completed"
+	SubjectWithdrawalOK = "withdrawal.completed"
+	SubjectGameRoundEnd = "game.round.ended"
+	SubjectKYCCompleted = "kyc.completed"
 )
 
 // Envelope is the shape wrapping every published event. It allows consumers
 // to route and version-evolve payloads without re-decoding twice.
 type Envelope struct {
-	ID        string          `json:"id"`
-	Subject   string          `json:"subject"`
-	OccurredAt time.Time      `json:"occurred_at"`
-	Producer  string          `json:"producer"`
-	Payload   json.RawMessage `json:"payload"`
+	ID         string          `json:"id"`
+	Subject    string          `json:"subject"`
+	OccurredAt time.Time       `json:"occurred_at"`
+	Producer   string          `json:"producer"`
+	Payload    json.RawMessage `json:"payload"`
 }
 
 // Bus is the publisher/subscriber interface our services depend on. The NATS

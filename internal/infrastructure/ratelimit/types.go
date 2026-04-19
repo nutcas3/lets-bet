@@ -85,21 +85,21 @@ const (
 
 // LimitResult represents the result of a rate limit check
 type LimitResult struct {
-	Allowed     bool          `json:"allowed"`
-	Remaining   int64         `json:"remaining"`
-	ResetTime    time.Time     `json:"reset_time"`
-	RetryAfter   time.Duration `json:"retry_after,omitempty"`
-	LimitType    string        `json:"limit_type"`
-	Key          string        `json:"key"`
+	Allowed    bool          `json:"allowed"`
+	Remaining  int64         `json:"remaining"`
+	ResetTime  time.Time     `json:"reset_time"`
+	RetryAfter time.Duration `json:"retry_after,omitempty"`
+	LimitType  string        `json:"limit_type"`
+	Key        string        `json:"key"`
 }
 
 // RateLimitError represents a rate limit error
 type RateLimitError struct {
-	Type        string        `json:"type"`
-	Message     string        `json:"message"`
-	RetryAfter  time.Duration `json:"retry_after"`
-	LimitType   string        `json:"limit_type"`
-	Key         string        `json:"key"`
+	Type       string        `json:"type"`
+	Message    string        `json:"message"`
+	RetryAfter time.Duration `json:"retry_after"`
+	LimitType  string        `json:"limit_type"`
+	Key        string        `json:"key"`
 }
 
 func (e *RateLimitError) Error() string {
@@ -141,21 +141,21 @@ type GlobalLimit struct {
 
 // RateLimitMetrics represents rate limiting metrics
 type RateLimitMetrics struct {
-	TotalRequests      int64         `json:"total_requests"`
-	AllowedRequests   int64         `json:"allowed_requests"`
-	BlockedRequests   int64         `json:"blocked_requests"`
-	UserLimits        int64         `json:"user_limits"`
-	IPLimits          int64         `json:"ip_limits"`
-	GlobalLimits      int64         `json:"global_limits"`
+	TotalRequests       int64         `json:"total_requests"`
+	AllowedRequests     int64         `json:"allowed_requests"`
+	BlockedRequests     int64         `json:"blocked_requests"`
+	UserLimits          int64         `json:"user_limits"`
+	IPLimits            int64         `json:"ip_limits"`
+	GlobalLimits        int64         `json:"global_limits"`
 	AverageResponseTime time.Duration `json:"average_response_time"`
-	LastResetTime     time.Time     `json:"last_reset_time"`
+	LastResetTime       time.Time     `json:"last_reset_time"`
 }
 
 // RateLimitInfo represents comprehensive rate limit information
 type RateLimitInfo struct {
-	UserLimits   []*UserLimit   `json:"user_limits"`
-	IPLimits     []*IPLimit     `json:"ip_limits"`
-	GlobalLimits []*GlobalLimit `json:"global_limits"`
+	UserLimits   []*UserLimit      `json:"user_limits"`
+	IPLimits     []*IPLimit        `json:"ip_limits"`
+	GlobalLimits []*GlobalLimit    `json:"global_limits"`
 	Metrics      *RateLimitMetrics `json:"metrics"`
 }
 
@@ -165,23 +165,23 @@ type RateLimitStore interface {
 	CheckLimit(ctx context.Context, key string, limit int, window time.Duration) (*LimitResult, error)
 	IncrementRequest(ctx context.Context, key string, window time.Duration) (int64, error)
 	ResetLimit(ctx context.Context, key string) error
-	
+
 	// User-specific operations
 	CheckUserLimit(ctx context.Context, userID string, requestType RequestType) (*LimitResult, error)
 	GetUserLimitInfo(ctx context.Context, userID string) (*UserLimit, error)
-	
+
 	// IP-specific operations
 	CheckIPLimit(ctx context.Context, ip string, requestType RequestType) (*LimitResult, error)
 	GetIPLimitInfo(ctx context.Context, ip string) (*IPLimit, error)
-	
+
 	// Global operations
 	CheckGlobalLimit(ctx context.Context, requestType RequestType) (*LimitResult, error)
 	GetGlobalLimitInfo(ctx context.Context) (*GlobalLimit, error)
-	
+
 	// Metrics and info
 	GetMetrics(ctx context.Context) (*RateLimitMetrics, error)
 	GetRateLimitInfo(ctx context.Context) (*RateLimitInfo, error)
-	
+
 	// Cleanup operations
 	CleanupExpiredKeys(ctx context.Context) error
 	ResetAllLimits(ctx context.Context) error
@@ -189,12 +189,12 @@ type RateLimitStore interface {
 
 // LimitKey represents a rate limit key with metadata
 type LimitKey struct {
-	Key         string        `json:"key"`
-	Type        RequestType   `json:"type"`
-	Limit       int           `json:"limit"`
-	Window      time.Duration `json:"window"`
-	ExpiresAt   time.Time     `json:"expires_at"`
-	RequestCount int64        `json:"request_count"`
+	Key          string        `json:"key"`
+	Type         RequestType   `json:"type"`
+	Limit        int           `json:"limit"`
+	Window       time.Duration `json:"window"`
+	ExpiresAt    time.Time     `json:"expires_at"`
+	RequestCount int64         `json:"request_count"`
 }
 
 // RateLimitConfig represents configuration for different request types
@@ -211,7 +211,7 @@ type RateLimitConfig struct {
 // GetDefaultRateLimitConfig returns default rate limit configurations
 func GetDefaultRateLimitConfig() *RateLimitConfig {
 	return &RateLimitConfig{
-	Auth: &LimitConfig{
+		Auth: &LimitConfig{
 			RequestsPerWindow: 10,
 			Window:            time.Minute,
 			KeyPrefix:         "auth:",

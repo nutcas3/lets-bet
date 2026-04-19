@@ -345,7 +345,6 @@ func (e *CrashGameEngine) settleBets(ctx context.Context, crashOdds decimal.Deci
 	if e.currentGame == nil {
 		return
 	}
-	_ = crashOdds // Suppress unused parameter warning
 
 	// Get active bets
 	bets, err := e.betRepo.GetActiveByGame(ctx, e.currentGame.ID)

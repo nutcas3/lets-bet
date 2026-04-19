@@ -37,7 +37,7 @@ func (c *AfricaTalkingClient) SendSMS(ctx context.Context, req *SMSRequest) (*SM
 	data.Set("username", c.config.Username)
 	data.Set("to", strings.Join(req.To, ","))
 	data.Set("message", req.Message)
-	
+
 	if req.From != "" {
 		data.Set("from", req.From)
 	}

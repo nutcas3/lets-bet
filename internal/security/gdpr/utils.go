@@ -134,7 +134,6 @@ func generateGDPRRecommendations(assessment *GDPRCompliance) []string {
 
 // generateUserRecommendations generates user-specific recommendations
 func generateUserRecommendations(assessment *GDPRCompliance, userID string) []string {
-	_ = userID // Suppress unused parameter warning
 	var recommendations []string
 
 	// Check if user needs to update consents
@@ -216,8 +215,6 @@ func CheckConsentExpiry(consentRecord ConsentRecord) bool {
 
 // GenerateDSARReport generates a data subject access request report
 func GenerateDSARReport(ctx context.Context, userID string) (map[string]any, error) {
-	_ = ctx    // Suppress unused parameter warning
-	_ = userID // Suppress unused parameter warning
 	// In a real implementation, this would generate a comprehensive report
 	report := map[string]any{
 		"user_id":       userID,

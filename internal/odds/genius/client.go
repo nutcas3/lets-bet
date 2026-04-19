@@ -106,7 +106,7 @@ func (g *GeniusClient) GetMatches(ctx context.Context, req *MatchRequest) (*Matc
 	}
 
 	url := fmt.Sprintf("%s/v1/matches", g.config.BaseURL)
-	
+
 	// Build query parameters
 	if req.SportID != "" {
 		url += fmt.Sprintf("?sport_id=%s", req.SportID)
@@ -158,7 +158,7 @@ func (g *GeniusClient) GetOdds(ctx context.Context, req *OddsRequest) (*OddsResp
 	}
 
 	url := fmt.Sprintf("%s/v1/odds", g.config.BaseURL)
-	
+
 	// Build query parameters
 	if req.SportID != "" {
 		url += fmt.Sprintf("?sport_id=%s", req.SportID)
@@ -207,7 +207,7 @@ func (g *GeniusClient) GetOdds(ctx context.Context, req *OddsRequest) (*OddsResp
 func (g *GeniusClient) GetMetrics(ctx context.Context) (*GeniusMetrics, error) {
 	// In a real implementation, these would be calculated from actual data
 	return &GeniusMetrics{
-		TotalRequests:        1000,
+		TotalRequests:       1000,
 		SuccessfulRequests:  950,
 		FailedRequests:      50,
 		LastRequestTime:     time.Now().Add(-1 * time.Hour),
