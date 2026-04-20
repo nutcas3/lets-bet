@@ -2,15 +2,17 @@ package live
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/shopspring/decimal"
+
 	"github.com/betting-platform/internal/core/domain"
+	"github.com/betting-platform/internal/infrastructure/id"
 	"github.com/betting-platform/internal/infrastructure/repository/postgres"
 	"github.com/betting-platform/internal/odds/genius"
 	"github.com/betting-platform/internal/odds/sportradar"
-	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 // EventBus interface for event publishing
@@ -28,6 +30,7 @@ type LiveBettingService struct {
 	sportradarClient *sportradar.SportradarClient
 	geniusClient     *genius.GeniusClient
 	eventBus         EventBus
+	betIDGenerator   *id.SnowflakeGenerator
 
 	// Live data cache
 	liveMatches      map[string]*LiveMatch
@@ -126,10 +129,9 @@ func (s *LiveBettingService) validateLiveOdds(ctx context.Context, matchID strin
 	return nil
 }
 
-// generateBetID generates a unique bet ID
-func (s *LiveBettingService) generateBetID() uuid.UUID {
-	// Generate UUID
-	return uuid.New()
+// generateBetID generates a unique time-based deterministic bet ID
+func (s *LiveBettingService) generateBetID() string {
+	return fmt.Sprintf("live_%s", s.betIDGenerator.GenerateID())
 }
 
 // recordOddsUpdate records an odds update

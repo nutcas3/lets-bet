@@ -7,12 +7,14 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+
 	"github.com/betting-platform/internal/core/domain"
+	"github.com/betting-platform/internal/infrastructure/id"
 	"github.com/betting-platform/internal/infrastructure/repository/postgres"
 	"github.com/betting-platform/internal/odds/genius"
 	"github.com/betting-platform/internal/odds/sportradar"
-	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 // LiveBetRequest represents a request to place a live bet
@@ -88,6 +90,11 @@ func NewLiveBettingService(
 	geniusClient *genius.GeniusClient,
 	eventBus EventBus,
 ) *LiveBettingService {
+	betIDGenerator, err := id.ServiceTypeGenerator("betting")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create betting ID generator: %v", err))
+	}
+
 	service := &LiveBettingService{
 		matchRepo:          matchRepo,
 		betRepo:            betRepo,
@@ -96,6 +103,7 @@ func NewLiveBettingService(
 		sportradarClient:   sportradarClient,
 		geniusClient:       geniusClient,
 		eventBus:           eventBus,
+		betIDGenerator:     betIDGenerator,
 		liveMatches:        make(map[string]*LiveMatch),
 		oddsUpdates:        make(map[string]*OddsUpdate),
 		settlementQueue:    make(chan *SettlementRequest, 1000),
@@ -192,7 +200,7 @@ func (s *LiveBettingService) PlaceLiveBet(ctx context.Context, req *LiveBetReque
 	}
 
 	bet := &domain.SportBet{
-		ID:        s.generateBetID().String(),
+		ID:        s.generateBetID(),
 		UserID:    req.UserID,
 		EventID:   req.MatchID,
 		MarketID:  req.MarketID,

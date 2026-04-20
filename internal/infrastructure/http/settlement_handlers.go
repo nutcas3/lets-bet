@@ -49,7 +49,7 @@ func (h *SettlementHandler) getSettlementHandler(w http.ResponseWriter, r *http.
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]any{
 		"id":     settlementID,
 		"status": "completed",
 		"amount": 1000.00,

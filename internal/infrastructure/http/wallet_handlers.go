@@ -39,7 +39,7 @@ func (h *WalletHandler) getWalletHandler(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]any{
 		"user_id":       userID,
 		"balance":       1000.00,
 		"currency":      "KES",
@@ -55,7 +55,7 @@ func (h *WalletHandler) getBalanceHandler(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]any{
 		"user_id":   userID,
 		"balance":   1000.00,
 		"available": 950.00,
@@ -70,7 +70,7 @@ func (h *WalletHandler) debitHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]any{
 		"user_id": userID,
 		"status":  "debited",
 		"amount":  100.00,
@@ -85,7 +85,7 @@ func (h *WalletHandler) creditHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]any{
 		"user_id": userID,
 		"status":  "credited",
 		"amount":  100.00,
@@ -100,9 +100,9 @@ func (h *WalletHandler) getTransactionsHandler(w http.ResponseWriter, r *http.Re
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]any{
 		"user_id": userID,
-		"transactions": []map[string]interface{}{
+		"transactions": []map[string]any{
 			{
 				"type":   "debit",
 				"amount": 100.00,

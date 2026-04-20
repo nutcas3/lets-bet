@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/betting-platform/internal/core/domain"
+	"github.com/betting-platform/internal/infrastructure/id"
 	"github.com/betting-platform/internal/infrastructure/repository/postgres"
 	"github.com/shopspring/decimal"
 )
@@ -21,16 +22,22 @@ func NewVirtualSportsService(
 	walletService WalletService,
 	eventBus EventBus,
 ) *VirtualSportsService {
+	gameIDGenerator, err := id.ServiceTypeGenerator("virtualsports")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create virtual sports ID generator: %v", err))
+	}
+
 	return &VirtualSportsService{
-		matchRepo:     matchRepo,
-		marketRepo:    marketRepo,
-		outcomeRepo:   outcomeRepo,
-		betRepo:       betRepo,
-		walletService: walletService,
-		eventBus:      eventBus,
-		rng:           rand.New(rand.NewSource(time.Now().UnixNano())),
-		games:         make(map[string]*VirtualGame),
-		schedules:     make(map[string]*GameSchedule),
+		matchRepo:       matchRepo,
+		marketRepo:      marketRepo,
+		outcomeRepo:     outcomeRepo,
+		betRepo:         betRepo,
+		walletService:   walletService,
+		eventBus:        eventBus,
+		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		gameIDGenerator: gameIDGenerator,
+		games:           make(map[string]*VirtualGame),
+		schedules:       make(map[string]*GameSchedule),
 	}
 }
 
@@ -238,10 +245,9 @@ func (s *VirtualSportsService) generateTeam(sport domain.Sport) *VirtualTeam {
 	}
 }
 
-// generateGameID generates a unique game ID
+// generateGameID generates a unique time-based deterministic game ID
 func (s *VirtualSportsService) generateGameID() string {
-	// Implementation stub
-	return fmt.Sprintf("game_%d", rand.Int63())
+	return fmt.Sprintf("game_%s", s.gameIDGenerator.GenerateID())
 }
 
 // generateOdds generates betting odds
@@ -273,8 +279,7 @@ func (s *VirtualSportsService) simulateGame(ctx context.Context, game *VirtualGa
 	return nil
 }
 
-// generateBetID generates a unique bet ID
+// generateBetID generates a unique time-based deterministic bet ID
 func (s *VirtualSportsService) generateBetID() string {
-	// Implementation stub
-	return fmt.Sprintf("bet_%d", rand.Int63())
+	return fmt.Sprintf("bet_%s", s.gameIDGenerator.GenerateID())
 }

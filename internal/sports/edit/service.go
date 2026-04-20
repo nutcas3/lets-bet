@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/shopspring/decimal"
-
 	"github.com/betting-platform/internal/core/domain"
+	"github.com/betting-platform/internal/infrastructure/id"
 	"github.com/betting-platform/internal/infrastructure/repository/postgres"
+	"github.com/shopspring/decimal"
 )
 
 // WalletService interface for wallet operations
@@ -27,6 +27,11 @@ func NewEditBetService(
 	walletService WalletService,
 	eventBus EventBus,
 ) *EditBetService {
+	idGenerator, err := id.ServiceTypeGenerator("edit")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create edit ID generator: %v", err))
+	}
+
 	return &EditBetService{
 		betRepo:       betRepo,
 		matchRepo:     matchRepo,
@@ -34,6 +39,7 @@ func NewEditBetService(
 		outcomeRepo:   outcomeRepo,
 		walletService: walletService,
 		eventBus:      eventBus,
+		idGenerator:   idGenerator,
 	}
 }
 
@@ -155,7 +161,7 @@ func (s *EditBetService) processRefund(ctx context.Context, bet *domain.SportBet
 		ReferenceType: "sport_bet",
 		Description:   fmt.Sprintf("Bet edit refund for bet %s", bet.ID),
 		ProviderName:  "edit_bet",
-		ProviderTxnID: fmt.Sprintf("refund-%s-%d", bet.ID, time.Now().Unix()),
+		ProviderTxnID: fmt.Sprintf("refund-%s", s.idGenerator.GenerateID()),
 		CountryCode:   "KE", // TODO: Get from bet or user
 	}
 
@@ -178,7 +184,7 @@ func (s *EditBetService) processAdditionalPayment(ctx context.Context, bet *doma
 		ReferenceType: "sport_bet",
 		Description:   fmt.Sprintf("Bet edit additional payment for bet %s", bet.ID),
 		ProviderName:  "edit_bet",
-		ProviderTxnID: fmt.Sprintf("additional-%s-%d", bet.ID, time.Now().Unix()),
+		ProviderTxnID: fmt.Sprintf("additional-%s", s.idGenerator.GenerateID()),
 		CountryCode:   "KE", // TODO: Get from bet or user
 	}
 

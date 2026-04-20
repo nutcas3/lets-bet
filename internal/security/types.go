@@ -1,10 +1,10 @@
 package security
 
 import (
-	"crypto/rand"
 	"fmt"
 	"time"
 
+	"github.com/betting-platform/internal/infrastructure/id"
 	"github.com/shopspring/decimal"
 )
 
@@ -310,9 +310,17 @@ type RGViolation struct {
 	Resolved    time.Time     `json:"resolved"`
 }
 
-// generateID generates a unique ID
+var securityGenerator *id.SnowflakeGenerator
+
+func init() {
+	var err error
+	securityGenerator, err = id.ServiceTypeGenerator("security")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create security ID generator: %v", err))
+	}
+}
+
+// generateID generates a unique time-based deterministic ID
 func generateID() string {
-	b := make([]byte, 16)
-	rand.Read(b)
-	return fmt.Sprintf("%x", b)
+	return securityGenerator.GenerateID()
 }

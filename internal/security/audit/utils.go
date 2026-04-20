@@ -2,18 +2,28 @@ package security
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"time"
+
+	"github.com/betting-platform/internal/infrastructure/id"
 )
+
+var auditGenerator *id.SnowflakeGenerator
+
+func init() {
+	var err error
+	auditGenerator, err = id.ServiceTypeGenerator("audit")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create audit ID generator: %v", err))
+	}
+}
 
 // generateID generates a unique ID for security findings and audits
 func generateID() string {
-	b := make([]byte, 16)
-	rand.Read(b)
-	return fmt.Sprintf("%x", b)
+	return auditGenerator.GenerateID()
 }
 
+// ... (rest of the code remains the same)
 // calculateRiskScore calculates risk score based on findings
 func calculateRiskScore(findings []SecurityFinding) int {
 	if len(findings) == 0 {

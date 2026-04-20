@@ -1,20 +1,28 @@
 package jackpots
 
 import (
-	crand "crypto/rand"
 	"fmt"
 	"math/big"
 	"math/rand"
 	"time"
 
+	"github.com/betting-platform/internal/infrastructure/id"
 	"github.com/shopspring/decimal"
 )
 
+var jackpotGenerator *id.SnowflakeGenerator
+
+func init() {
+	var err error
+	jackpotGenerator, err = id.ServiceTypeGenerator("jackpot")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create jackpot ID generator: %v", err))
+	}
+}
+
 // generateID generates a unique ID for jackpot records
 func generateID() string {
-	b := make([]byte, 16)
-	crand.Read(b)
-	return fmt.Sprintf("%x", b)
+	return jackpotGenerator.GenerateID()
 }
 
 // validateJackpot validates jackpot configuration

@@ -3,11 +3,12 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/betting-platform/internal/infrastructure/id"
 	"github.com/betting-platform/internal/sports/live"
-	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -23,15 +24,25 @@ func NewLiveHandler(liveService *live.LiveBettingService) *LiveHandler {
 	}
 }
 
+var httpLiveGenerator *id.SnowflakeGenerator
+
+func init() {
+	var err error
+	httpLiveGenerator, err = id.ServiceTypeGenerator("http")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create HTTP live ID generator: %v", err))
+	}
+}
+
 // Helper functions
 func generateID() string {
-	return uuid.New().String()
+	return httpLiveGenerator.GenerateID()
 }
 
 func getUserID(_ context.Context) string {
 	// In a real implementation, this would extract user ID from JWT token
 	// For now, return a dummy ID
-	return "user-" + uuid.New().String()
+	return "user-" + generateID()
 }
 
 // WriteError writes an error response
