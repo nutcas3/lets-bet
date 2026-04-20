@@ -36,10 +36,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.26.2'
+      - name: Install gosec
+        run: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
       - name: Run gosec
-        uses: securego/gosec@master
-        with:
-          args: "-exclude-dir=tests ./..."
+        run: gosec -exclude-dir=tests ./...
 
   codeql:
     name: CodeQL
