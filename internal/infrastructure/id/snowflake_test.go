@@ -67,14 +67,12 @@ func TestConcurrentGeneration(t *testing.T) {
 	ids := make(chan string, 1000)
 
 	// Generate IDs concurrently
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for j := 0; j < 100; j++ {
+	for range 10 {
+		wg.Go(func() {
+			for range 100 {
 				ids <- gen.GenerateID()
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -200,7 +198,7 @@ func TestSequenceNumberHandling(t *testing.T) {
 	var lastTimestamp string
 	var lastSequence string
 
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		id := gen.GenerateID()
 		timestamp, _, sequence, err := ParseSnowflakeID(id)
 		if err != nil {
