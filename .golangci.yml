@@ -3,7 +3,7 @@ version: "2"
 run:
   timeout: 5m
   tests: true
-  go: "1.26.1"
+  go: "1.26.2"
 
 linters:
   default: none
@@ -14,15 +14,3 @@ linters:
     - staticcheck
     - unused
     - bodyclose
-    - misspell
-    - unconvert
-  exclusions:
-    rules:
-      - path: _test\.go
-        linters:
-          - errcheck
-
-formatters:
-  enable:
-    - gofmt
-    - goimports

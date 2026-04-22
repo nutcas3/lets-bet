@@ -1,6 +1,6 @@
 module github.com/betting-platform
 
-go 1.26.1
+go 1.26.2
 
 require (
 	github.com/go-redis/redis/v8 v8.11.5

@@ -32,23 +32,23 @@ func (h *EngineHandler) RegisterRoutes(r *mux.Router) {
 func (h *EngineHandler) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"healthy","service":"engine"}`))
+	_, _ = w.Write([]byte(`{"status":"healthy","service":"engine"}`))
 }
 
 func (h *EngineHandler) syncOddsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	w.Write([]byte(`{"message":"Odds sync initiated"}`))
+	_, _ = w.Write([]byte(`{"message":"Odds sync initiated"}`))
 }
 
 func (h *EngineHandler) calculateOddsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"total_odds":8.50,"potential_win":850.00}`))
+	_, _ = w.Write([]byte(`{"total_odds":8.50,"potential_win":850.00}`))
 }
 
 func (h *EngineHandler) getLiveOddsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"matches":[{"id":"1","home":"Arsenal","away":"Chelsea","odds":{"home":2.50,"draw":3.20,"away":2.80}}]}`))
+	_, _ = w.Write([]byte(`{"matches":[{"id":"1","home":"Arsenal","away":"Chelsea","odds":{"home":2.50,"draw":3.20,"away":2.80}}]}`))
 }

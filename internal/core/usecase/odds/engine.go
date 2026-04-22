@@ -73,7 +73,7 @@ func (e *OddsEngine) syncOdds(ctx context.Context) {
 	// Cache odds
 	for _, match := range matches {
 		cacheKey := "match:" + match.ID
-		e.cache.Set(cacheKey, match, 30*time.Second)
+		_ = e.cache.Set(cacheKey, match, 30*time.Second)
 	}
 
 	// Publish odds updates

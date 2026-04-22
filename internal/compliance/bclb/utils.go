@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/betting-platform/internal/infrastructure/id"
 	"github.com/shopspring/decimal"
 )
 
@@ -66,7 +67,17 @@ func (s *BCLBService) publishComplianceEvent(topic string, data any) {
 	}
 }
 
-// generateTransactionID generates a unique transaction ID
+var complianceGenerator *id.SnowflakeGenerator
+
+func init() {
+	var err error
+	complianceGenerator, err = id.ServiceTypeGenerator("compliance")
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create compliance ID generator: %v", err))
+	}
+}
+
+// generateTransactionID generates a unique time-based deterministic transaction ID
 func generateTransactionID() string {
-	return fmt.Sprintf("txn_%d", time.Now().UnixNano())
+	return fmt.Sprintf("txn_%s", complianceGenerator.GenerateID())
 }

@@ -18,9 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          go-version: "1.26.1"
+          go-version: '1.26.2'
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - name: Run govulncheck
@@ -31,16 +32,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run gosec
-        uses: securego/gosec@master
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          args: "-exclude-dir=tests ./..."
+          go-version: '1.26.2'
+      - name: Install gosec
+        run: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+      - name: Run gosec
+        run: gosec -exclude-dir=tests ./...
 
   codeql:
     name: CodeQL
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.2'
       - uses: github/codeql-action/init@v3
         with:
           languages: go

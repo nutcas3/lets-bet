@@ -7,20 +7,22 @@ import (
 	"time"
 
 	"github.com/betting-platform/internal/core/domain"
+	"github.com/betting-platform/internal/infrastructure/id"
 	"github.com/betting-platform/internal/infrastructure/repository/postgres"
 	"github.com/shopspring/decimal"
 )
 
 // VirtualSportsService manages virtual sports games and betting
 type VirtualSportsService struct {
-	matchRepo     postgres.MatchRepository
-	marketRepo    postgres.BettingMarketRepository
-	outcomeRepo   postgres.MarketOutcomeRepository
-	betRepo       postgres.SportBetRepository
-	walletService WalletService
-	eventBus      EventBus
-	rng           *rand.Rand
-	mu            sync.RWMutex
+	matchRepo       postgres.MatchRepository
+	marketRepo      postgres.BettingMarketRepository
+	outcomeRepo     postgres.MarketOutcomeRepository
+	betRepo         postgres.SportBetRepository
+	walletService   WalletService
+	eventBus        EventBus
+	rng             *rand.Rand
+	gameIDGenerator *id.SnowflakeGenerator
+	mu              sync.RWMutex
 
 	// Virtual game state
 	games     map[string]*VirtualGame

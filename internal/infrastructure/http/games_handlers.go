@@ -35,30 +35,30 @@ func (h *GamesHandler) RegisterRoutes(r *mux.Router) {
 func (h *GamesHandler) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"healthy","service":"games"}`))
+	_, _ = w.Write([]byte(`{"status":"healthy","service":"games"}`))
 }
 
 func (h *GamesHandler) getCurrentGameHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"game_id":"123","round_number":42,"status":"RUNNING","current_multiplier":2.45}`))
+	_, _ = w.Write([]byte(`{"game_id":"123","round_number":42,"status":"RUNNING","current_multiplier":2.45}`))
 }
 
 func (h *GamesHandler) getGameHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"games":[{"round":41,"crash_point":3.52},{"round":40,"crash_point":1.23}]}`))
+	_, _ = w.Write([]byte(`{"games":[{"round":41,"crash_point":3.52},{"round":40,"crash_point":1.23}]}`))
 }
 
 func (h *GamesHandler) placeGameBetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(`{"message":"Game bet placed - connect to WebSocket for live updates"}`))
+	_, _ = w.Write([]byte(`{"message":"Game bet placed - connect to WebSocket for live updates"}`))
 }
 
 func (h *GamesHandler) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	// This would be implemented with the WebSocket hub
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message":"WebSocket endpoint - implement with hub"}`))
+	_, _ = w.Write([]byte(`{"message":"WebSocket endpoint - implement with hub"}`))
 }

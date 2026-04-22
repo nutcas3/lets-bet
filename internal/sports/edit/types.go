@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/betting-platform/internal/core/domain"
+	"github.com/betting-platform/internal/infrastructure/id"
 	"github.com/betting-platform/internal/infrastructure/repository/postgres"
 	"github.com/shopspring/decimal"
 )
@@ -33,6 +34,7 @@ type EditBetService struct {
 	outcomeRepo   *postgres.MarketOutcomeRepository
 	walletService WalletService
 	eventBus      EventBus
+	idGenerator   *id.SnowflakeGenerator
 }
 
 // EventBus interface for publishing events
