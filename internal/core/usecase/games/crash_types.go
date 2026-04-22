@@ -2,6 +2,7 @@ package games
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/betting-platform/internal/core/domain"
@@ -20,6 +21,7 @@ type CrashGameEngine struct {
 	betRepo       GameBetRepository
 	walletService *wallet.Service
 	taxEngine     *tax.Engine
+	mu            sync.RWMutex
 	currentGame   *domain.Game
 	roundNumber   int64
 	tickInterval  time.Duration
