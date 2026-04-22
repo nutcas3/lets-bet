@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
@@ -269,4 +270,123 @@ func (r *GameBetRepository) UpdateStatus(ctx context.Context, id uuid.UUID, stat
 	}
 
 	return nil
+}
+
+// AtomicCashout implements atomic SQL update for double-cashout prevention
+// UPDATE bets SET status = 'cashed_out', cashout_at = ?, payout = ?
+// WHERE id = ? AND status = 'active'
+func (r *GameBetRepository) AtomicCashout(ctx context.Context, id uuid.UUID, cashoutAt decimal.Decimal, payout decimal.Decimal) (bool, error) {
+	query := `
+		UPDATE game_bets 
+		SET cashed_out = true, cashout_at = $1, payout = $2, status = $3, cashed_out_at = $4
+		WHERE id = $5 AND status = $6
+	`
+
+	now := time.Now()
+
+	result, err := r.db.ExecContext(ctx, query, cashoutAt, payout, domain.GameBetStatusCashedOut, now, id, domain.GameBetStatusActive)
+	if err != nil {
+		log.Printf("Error performing atomic cashout: %v", err)
+		return false, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error getting rows affected: %v", err)
+		return false, err
+	}
+
+	return rowsAffected > 0, nil
+}
+
+// CreateBetWithWalletUpdate implements atomic wallet update + bet creation in transaction
+// This method performs both wallet debit and bet creation in a single database transaction
+func (r *GameBetRepository) CreateBetWithWalletUpdate(ctx context.Context, bet *domain.GameBet, userID uuid.UUID, amount decimal.Decimal) (uuid.UUID, error) {
+	// Start transaction
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		log.Printf("Error starting transaction: %v", err)
+		return uuid.Nil, err
+	}
+
+	// Ensure rollback if function fails
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Step 1: Update wallet balance atomically
+	// This ensures the user has sufficient funds and prevents double-spending
+	walletUpdateQuery := `
+		UPDATE wallets 
+		SET balance = balance - $1, updated_at = $2
+		WHERE user_id = $3 AND balance >= $1
+		RETURNING balance
+	`
+
+	var newBalance decimal.Decimal
+	err = tx.QueryRowContext(ctx, walletUpdateQuery, amount, time.Now(), userID).Scan(&newBalance)
+	if err != nil {
+		log.Printf("Error updating wallet balance: %v", err)
+		return uuid.Nil, fmt.Errorf("insufficient balance or wallet error: %w", err)
+	}
+
+	// Step 2: Create the bet record
+	betCreateQuery := `
+		INSERT INTO game_bets (
+			id, game_id, user_id, amount, currency, cashed_out, cashout_at,
+			payout, status, placed_at, cashed_out_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id
+	`
+
+	var returnedID uuid.UUID
+	err = tx.QueryRowContext(ctx, betCreateQuery,
+		bet.ID, bet.GameID, bet.UserID, bet.Amount, bet.Currency,
+		bet.CashedOut, bet.CashoutAt, bet.Payout, bet.Status,
+		bet.PlacedAt, bet.CashedOutAt,
+	).Scan(&returnedID)
+
+	if err != nil {
+		log.Printf("Error creating game bet: %v", err)
+		return uuid.Nil, fmt.Errorf("bet creation failed: %w", err)
+	}
+
+	// Step 3: Create transaction record for audit trail
+	transactionQuery := `
+		INSERT INTO transactions (
+			id, wallet_id, user_id, type, amount, currency, 
+			balance_before, balance_after, reference_id, reference_type,
+			status, description, created_at, country_code
+		) 
+		SELECT $1, w.id, $2, $3, $4, $5, 
+			   w.balance + $4, w.balance, $6, $7,
+			   $8, $9, $10, $11
+		FROM wallets w WHERE w.user_id = $2
+	`
+
+	transactionID := uuid.New()
+	_, err = tx.ExecContext(ctx, transactionQuery,
+		transactionID, userID, "BET_PLACED", amount, bet.Currency,
+		bet.ID, "BET", "COMPLETED", "Bet placed", time.Now(), "US",
+	)
+	if err != nil {
+		log.Printf("Error creating transaction record: %v", err)
+		return uuid.Nil, fmt.Errorf("transaction recording failed: %w", err)
+	}
+
+	// Commit transaction if all operations succeeded
+	if err = tx.Commit(); err != nil {
+		log.Printf("Error committing transaction: %v", err)
+		return uuid.Nil, fmt.Errorf("transaction commit failed: %w", err)
+	}
+
+	// Transaction was successful - no rollback needed
+	err = nil
+
+	log.Printf("Successfully created bet %s and updated wallet for user %s, new balance: %s",
+		returnedID.String(), userID.String(), newBalance.String())
+
+	return returnedID, nil
 }
