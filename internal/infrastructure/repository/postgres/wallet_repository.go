@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
@@ -63,19 +64,45 @@ func (r *WalletRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*
 }
 
 func (r *WalletRepository) UpdateBalance(ctx context.Context, userID uuid.UUID, newBalance, newBonusBalance decimal.Decimal) error {
+	// First, get current wallet version for optimistic locking
+	var currentVersion int64
+	getVersionQuery := `SELECT version FROM wallets WHERE user_id = $1 FOR UPDATE`
+	err := r.db.QueryRowContext(ctx, getVersionQuery, userID).Scan(&currentVersion)
+	if err != nil {
+		log.Printf("Error getting wallet version: %v", err)
+		return fmt.Errorf("wallet not found: %w", err)
+	}
+
+	// Update with optimistic locking - ensure we're updating the version we read
 	query := `
 		UPDATE wallets SET 
-			balance = $2, bonus_balance = $3, updated_at = $4
-		WHERE user_id = $1
+			balance = $2, bonus_balance = $3, updated_at = $4, version = version + 1
+		WHERE user_id = $1 AND version = $5
 	`
 
 	now := time.Now()
 
-	_, err := r.db.ExecContext(ctx, query, userID, newBalance, newBonusBalance, now)
+	result, err := r.db.ExecContext(ctx, query, userID, newBalance, newBonusBalance, now, currentVersion)
 	if err != nil {
 		log.Printf("Error updating wallet balance: %v", err)
 		return err
 	}
+
+	// Check if exactly one row was updated (optimistic lock success)
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error getting rows affected: %v", err)
+		return err
+	}
+
+	if rowsAffected == 0 {
+		// No rows updated means the version changed between read and write
+		log.Printf("Optimistic lock conflict for user %s: expected version %d", userID.String(), currentVersion)
+		return fmt.Errorf("optimistic lock conflict: wallet version changed")
+	}
+
+	log.Printf("Successfully updated wallet balance for user %s, version %d -> %d",
+		userID.String(), currentVersion, currentVersion+1)
 
 	return nil
 }
