@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
@@ -299,12 +300,40 @@ func (r *GameBetRepository) AtomicCashout(ctx context.Context, id uuid.UUID, cas
 }
 
 // CreateBetWithWalletUpdate implements atomic wallet update + bet creation in transaction
-// This method should be called within a database transaction to ensure atomicity
+// This method performs both wallet debit and bet creation in a single database transaction
 func (r *GameBetRepository) CreateBetWithWalletUpdate(ctx context.Context, bet *domain.GameBet, userID uuid.UUID, amount decimal.Decimal) (uuid.UUID, error) {
-	// In a real implementation, this would be part of a transaction that also updates the wallet
-	// For now, we'll just create the bet. The wallet update should be handled in the same transaction.
+	// Start transaction
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		log.Printf("Error starting transaction: %v", err)
+		return uuid.Nil, err
+	}
 
-	query := `
+	// Ensure rollback if function fails
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Step 1: Update wallet balance atomically
+	// This ensures the user has sufficient funds and prevents double-spending
+	walletUpdateQuery := `
+		UPDATE wallets 
+		SET balance = balance - $1, updated_at = $2
+		WHERE user_id = $3 AND balance >= $1
+		RETURNING balance
+	`
+
+	var newBalance decimal.Decimal
+	err = tx.QueryRowContext(ctx, walletUpdateQuery, amount, time.Now(), userID).Scan(&newBalance)
+	if err != nil {
+		log.Printf("Error updating wallet balance: %v", err)
+		return uuid.Nil, fmt.Errorf("insufficient balance or wallet error: %w", err)
+	}
+
+	// Step 2: Create the bet record
+	betCreateQuery := `
 		INSERT INTO game_bets (
 			id, game_id, user_id, amount, currency, cashed_out, cashout_at,
 			payout, status, placed_at, cashed_out_at
@@ -313,16 +342,51 @@ func (r *GameBetRepository) CreateBetWithWalletUpdate(ctx context.Context, bet *
 	`
 
 	var returnedID uuid.UUID
-	err := r.db.QueryRowContext(ctx, query,
+	err = tx.QueryRowContext(ctx, betCreateQuery,
 		bet.ID, bet.GameID, bet.UserID, bet.Amount, bet.Currency,
 		bet.CashedOut, bet.CashoutAt, bet.Payout, bet.Status,
 		bet.PlacedAt, bet.CashedOutAt,
 	).Scan(&returnedID)
 
 	if err != nil {
-		log.Printf("Error creating game bet with wallet update: %v", err)
-		return uuid.Nil, err
+		log.Printf("Error creating game bet: %v", err)
+		return uuid.Nil, fmt.Errorf("bet creation failed: %w", err)
 	}
+
+	// Step 3: Create transaction record for audit trail
+	transactionQuery := `
+		INSERT INTO transactions (
+			id, wallet_id, user_id, type, amount, currency, 
+			balance_before, balance_after, reference_id, reference_type,
+			status, description, created_at, country_code
+		) 
+		SELECT $1, w.id, $2, $3, $4, $5, 
+			   w.balance + $4, w.balance, $6, $7,
+			   $8, $9, $10, $11
+		FROM wallets w WHERE w.user_id = $2
+	`
+
+	transactionID := uuid.New()
+	_, err = tx.ExecContext(ctx, transactionQuery,
+		transactionID, userID, "BET_PLACED", amount, bet.Currency,
+		bet.ID, "BET", "COMPLETED", "Bet placed", time.Now(), "US",
+	)
+	if err != nil {
+		log.Printf("Error creating transaction record: %v", err)
+		return uuid.Nil, fmt.Errorf("transaction recording failed: %w", err)
+	}
+
+	// Commit transaction if all operations succeeded
+	if err = tx.Commit(); err != nil {
+		log.Printf("Error committing transaction: %v", err)
+		return uuid.Nil, fmt.Errorf("transaction commit failed: %w", err)
+	}
+
+	// Transaction was successful - no rollback needed
+	err = nil
+
+	log.Printf("Successfully created bet %s and updated wallet for user %s, new balance: %s",
+		returnedID.String(), userID.String(), newBalance.String())
 
 	return returnedID, nil
 }
