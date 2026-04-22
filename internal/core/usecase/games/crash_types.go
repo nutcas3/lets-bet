@@ -50,6 +50,7 @@ type GameBetRepository interface {
 	UpdateCashout(ctx context.Context, id uuid.UUID, cashoutAt decimal.Decimal, payout decimal.Decimal) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.GameBetStatus) error
 	AtomicCashout(ctx context.Context, id uuid.UUID, cashoutAt decimal.Decimal, payout decimal.Decimal) (bool, error)
+	CreateBetWithWalletUpdate(ctx context.Context, bet *domain.GameBet, userID uuid.UUID, amount decimal.Decimal) (uuid.UUID, error)
 }
 
 // WebSocketHub interface for WebSocket operations

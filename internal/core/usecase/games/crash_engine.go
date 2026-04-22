@@ -66,12 +66,24 @@ func (e *CrashGameEngine) handlePlaceBet(req BetRequest) {
 		return
 	}
 
-	// Process bet with atomic database operations
+	// Create bet with atomic wallet update in transaction
 	// This is the ONLY place where game state changes
 	// No Mutex needed inside this block!
+	bet := &domain.GameBet{
+		ID:       uuid.New(),
+		GameID:   game.ID,
+		UserID:   req.UserID,
+		Amount:   req.Amount,
+		Status:   domain.GameBetStatusActive,
+		PlacedAt: time.Now(),
+	}
 
-	// TODO: Implement atomic wallet update + bet creation in transaction
-	// For now, return success
+	_, err := e.betRepo.CreateBetWithWalletUpdate(context.Background(), bet, req.UserID, req.Amount)
+	if err != nil {
+		req.Resp <- fmt.Errorf("failed to place bet: %w", err)
+		return
+	}
+
 	req.Resp <- nil
 }
 
