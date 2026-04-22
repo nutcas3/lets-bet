@@ -49,6 +49,7 @@ type GameBetRepository interface {
 	GetActiveByGame(ctx context.Context, gameID uuid.UUID) ([]*domain.GameBet, error)
 	UpdateCashout(ctx context.Context, id uuid.UUID, cashoutAt decimal.Decimal, payout decimal.Decimal) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status domain.GameBetStatus) error
+	AtomicCashout(ctx context.Context, id uuid.UUID, cashoutAt decimal.Decimal, payout decimal.Decimal) (bool, error)
 }
 
 // WebSocketHub interface for WebSocket operations

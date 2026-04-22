@@ -89,13 +89,73 @@ func (e *CrashGameEngine) handleCashout(req CashoutRequest) {
 		return
 	}
 
-	// TODO: Implement atomic SQL update for double-cashout prevention
-	// UPDATE bets SET status = 'cashed_out' WHERE id = ? AND status = 'active'
+	// Get bet to validate and calculate payout
+	bet, err := e.betRepo.GetByID(context.Background(), req.BetID)
+	if err != nil {
+		req.Resp <- &CashoutResponse{
+			Success: false,
+			Message: "Bet not found",
+		}
+		return
+	}
 
-	// For now, return success
+	if bet.Status != domain.GameBetStatusActive {
+		req.Resp <- &CashoutResponse{
+			Success: false,
+			Message: "Bet is not active",
+		}
+		return
+	}
+
+	if bet.GameID != game.ID {
+		req.Resp <- &CashoutResponse{
+			Success: false,
+			Message: "Bet is not for current game",
+		}
+		return
+	}
+
+	// Calculate cashout
+	currentOdds := e.calculateCurrentOdds(game.StartedAt)
+	payout := bet.Amount.Mul(currentOdds)
+
+	// Atomic SQL update for double-cashout prevention
+	// UPDATE bets SET status = 'cashed_out', cashout_at = ?, payout = ?
+	// WHERE id = ? AND status = 'active'
+	success, err := e.betRepo.AtomicCashout(context.Background(), req.BetID, currentOdds, payout)
+	if err != nil {
+		req.Resp <- &CashoutResponse{
+			Success: false,
+			Message: "Database error during cashout",
+		}
+		return
+	}
+
+	if !success {
+		req.Resp <- &CashoutResponse{
+			Success: false,
+			Message: "Bet already cashed out or game crashed",
+		}
+		return
+	}
+
+	// Credit wallet atomically
+	movement := wallet.Movement{
+		UserID: req.UserID,
+		Amount: payout,
+		Type:   domain.TransactionTypeBetWon,
+	}
+	if _, err := e.walletService.Credit(context.Background(), req.UserID, payout, movement); err != nil {
+		// Log error but don't fail the cashout since bet was already updated
+		log.Printf("Failed to credit wallet for user %s: %v", req.UserID, err)
+	}
+
+	// Return success response
 	req.Resp <- &CashoutResponse{
-		Success: true,
-		Message: "Cashout processed",
+		Success:     true,
+		Message:     "Cashout successful",
+		CashoutOdds: currentOdds,
+		Payout:      payout,
 	}
 }
 
