@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/betting-platform/internal/core/domain"
+	"github.com/betting-platform/internal/core/usecase/wallet"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -102,14 +103,160 @@ func (m *MockGameBetRepository) AtomicCashout(ctx context.Context, id uuid.UUID,
 	return true, nil
 }
 
+// CreateBetWithWalletUpdate simulates atomic wallet update + bet creation in transaction
+func (m *MockGameBetRepository) CreateBetWithWalletUpdate(ctx context.Context, bet *domain.GameBet, userID uuid.UUID, amount decimal.Decimal) (uuid.UUID, error) {
+	// Simulate database transaction
+	// In real implementation: BEGIN; UPDATE wallets SET balance = balance - ? WHERE user_id = ? AND balance >= ?; INSERT INTO bets ...; COMMIT;
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Create bet
+	m.bets[bet.ID] = bet
+
+	return bet.ID, nil
+}
+
+// MockWalletService implements wallet.WalletService interface
+type MockWalletService struct {
+	balances map[uuid.UUID]decimal.Decimal
+	mu       sync.RWMutex
+}
+
+func NewMockWalletService() *MockWalletService {
+	return &MockWalletService{
+		balances: make(map[uuid.UUID]decimal.Decimal),
+	}
+}
+
+func (m *MockWalletService) SetBalance(userID uuid.UUID, balance decimal.Decimal) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.balances[userID] = balance
+}
+
+func (m *MockWalletService) Balance(ctx context.Context, userID uuid.UUID) (decimal.Decimal, decimal.Decimal, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	balance, exists := m.balances[userID]
+	if !exists {
+		return decimal.Zero, decimal.Zero, nil
+	}
+	return balance, decimal.Zero, nil
+}
+
+func (m *MockWalletService) Debit(ctx context.Context, userID uuid.UUID, amount decimal.Decimal, movement wallet.Movement) (decimal.Decimal, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	current := m.balances[userID]
+	if current.LessThan(amount) {
+		return decimal.Zero, assert.AnError
+	}
+
+	m.balances[userID] = current.Sub(amount)
+	return m.balances[userID], nil
+}
+
+func (m *MockWalletService) Credit(ctx context.Context, userID uuid.UUID, amount decimal.Decimal, movement wallet.Movement) (decimal.Decimal, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	current := m.balances[userID]
+	m.balances[userID] = current.Add(amount)
+	return m.balances[userID], nil
+}
+
+// MockWebSocketHub implements WebSocketHub interface for testing
+type MockWebSocketHub struct{}
+
+func (m *MockWebSocketHub) BroadcastGameState(state any) {}
+
+func (m *MockWebSocketHub) GetActivePlayerCount(gameID uuid.UUID) int {
+	return 0
+}
+
+// ========================================
+// Minimal Crash Engine Tests
+// ========================================
+
+// TestCrashEngineMinimal tests basic functionality without extreme concurrency
+func TestCrashEngineMinimal(t *testing.T) {
+	t.Parallel()
+
+	// Create engine with minimal setup
+	engine := &CrashGameEngine{
+		roundNumber:  0,
+		tickInterval: 10 * time.Millisecond,
+	}
+
+	// Test initial state
+	gameState := engine.getGameState()
+	assert.Equal(t, domain.GameStatusWaiting, gameState.Status)
+
+	odds := engine.getCurrentOdds()
+	assert.Equal(t, decimal.NewFromFloat(1.0), odds)
+
+	// Test with no game - should not panic
+	engine.crashGame(context.Background(), decimal.NewFromFloat(2.0))
+	gameState = engine.getGameState()
+	assert.Equal(t, domain.GameStatusWaiting, gameState.Status)
+}
+
+// TestCrashEngineBasicGame tests basic game operations
+func TestCrashEngineBasicGame(t *testing.T) {
+	t.Parallel()
+
+	// Create engine with minimal setup - initialize all required fields
+	engine := &CrashGameEngine{
+		roundNumber:  42,
+		tickInterval: 10 * time.Millisecond,
+		hub:          &MockWebSocketHub{}, // Initialize hub to prevent nil pointer
+	}
+
+	game := &domain.Game{
+		ID:          uuid.New(),
+		GameType:    domain.GameTypeCrash,
+		RoundNumber: 42,
+		Status:      domain.GameStatusRunning,
+		StartedAt:   time.Now(),
+		CrashPoint:  decimal.NewFromFloat(2.5),
+	}
+
+	// Set current game
+	engine.mu.Lock()
+	engine.currentGame = game
+	engine.mu.Unlock()
+
+	// Test game state
+	gameState := engine.getGameState()
+	assert.Equal(t, game.ID, gameState.GameID)
+	assert.Equal(t, domain.GameStatusRunning, gameState.Status)
+	assert.Equal(t, int64(42), gameState.RoundNumber)
+
+	// Test odds calculation
+	odds := engine.getCurrentOdds()
+	assert.True(t, odds.GreaterThanOrEqual(decimal.NewFromFloat(1.0)))
+
+	// Test crash game
+	ctx := context.Background()
+	engine.crashGame(ctx, decimal.NewFromFloat(2.0))
+
+	// Verify game is cleared
+	gameState = engine.getGameState()
+	assert.Equal(t, domain.GameStatusWaiting, gameState.Status)
+}
+
+// ========================================
+// Atomic Cashout Tests
+// ========================================
+
 // TestAtomicCashoutRepository tests the atomic cashout functionality
 func TestAtomicCashoutRepository(t *testing.T) {
 	t.Parallel()
 
 	// Test atomic cashout logic directly
-	betRepo := &MockGameBetRepository{
-		bets: make(map[uuid.UUID]*domain.GameBet),
-	}
+	betRepo := NewMockGameBetRepository()
 
 	// Create a test bet
 	betID := uuid.New()
@@ -153,9 +300,7 @@ func TestAtomicCashoutRepository(t *testing.T) {
 func TestAtomicCashoutConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	betRepo := &MockGameBetRepository{
-		bets: make(map[uuid.UUID]*domain.GameBet),
-	}
+	betRepo := NewMockGameBetRepository()
 
 	// Create a test bet
 	betID := uuid.New()
@@ -216,9 +361,7 @@ func TestAtomicCashoutConcurrentAccess(t *testing.T) {
 func TestAtomicCashoutEdgeCases(t *testing.T) {
 	t.Parallel()
 
-	betRepo := &MockGameBetRepository{
-		bets: make(map[uuid.UUID]*domain.GameBet),
-	}
+	betRepo := NewMockGameBetRepository()
 
 	t.Run("Non-existent bet", func(t *testing.T) {
 		t.Parallel()
@@ -283,9 +426,7 @@ func TestAtomicCashoutEdgeCases(t *testing.T) {
 func TestAtomicCashoutSimulation(t *testing.T) {
 	t.Parallel()
 
-	betRepo := &MockGameBetRepository{
-		bets: make(map[uuid.UUID]*domain.GameBet),
-	}
+	betRepo := NewMockGameBetRepository()
 
 	// Create a test bet (simulating a user placing a bet)
 	betID := uuid.New()
@@ -366,9 +507,7 @@ func TestAtomicCashoutSimulation(t *testing.T) {
 func TestAtomicCashoutPerformance(t *testing.T) {
 	t.Parallel()
 
-	betRepo := &MockGameBetRepository{
-		bets: make(map[uuid.UUID]*domain.GameBet),
-	}
+	betRepo := NewMockGameBetRepository()
 
 	// Create multiple bets for concurrent testing
 	numBets := 100
