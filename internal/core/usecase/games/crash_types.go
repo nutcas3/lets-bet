@@ -3,6 +3,7 @@ package games
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/betting-platform/internal/core/domain"
@@ -25,6 +26,13 @@ type CrashGameEngine struct {
 	currentGame   *domain.Game
 	roundNumber   int64
 	tickInterval  time.Duration
+
+	// Channel-based state management
+	betChan     chan BetRequest
+	cashoutChan chan CashoutRequest
+	commandChan chan string // "START", "STOP", "CRASH"
+	gameCancel  context.CancelFunc
+	latestState atomic.Value // Stores latest GameState for lock-free reads
 }
 
 // GameRepository interface for game operations
@@ -72,6 +80,7 @@ type BetRequest struct {
 	UserID        uuid.UUID        `json:"user_id"`
 	Amount        decimal.Decimal  `json:"amount"`
 	AutoCashoutAt *decimal.Decimal `json:"auto_cashout_at,omitempty"`
+	Resp          chan error       `json:"-"` // Response channel for manager pattern
 }
 
 // BetResponse represents a bet response
@@ -85,8 +94,9 @@ type BetResponse struct {
 
 // CashoutRequest represents a cashout request
 type CashoutRequest struct {
-	BetID  uuid.UUID `json:"bet_id"`
-	UserID uuid.UUID `json:"user_id"`
+	BetID  uuid.UUID             `json:"bet_id"`
+	UserID uuid.UUID             `json:"user_id"`
+	Resp   chan *CashoutResponse `json:"-"` // Response channel for manager pattern
 }
 
 // CashoutResponse represents a cashout response
