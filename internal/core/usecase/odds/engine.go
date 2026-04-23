@@ -86,7 +86,11 @@ func (e *OddsEngine) syncOdds(ctx context.Context) {
 
 // CalculateBetOdds calculates total odds for a bet slip
 func (e *OddsEngine) CalculateBetOdds(bet *domain.Bet) (*BetOddsResult, error) {
-	var totalOdds decimal.Decimal
+	//BEFORE
+	//var totalOdds decimal.Decimal
+
+	//AFTER
+	totalOdds := decimal.NewFromInt(1)
 	var validSelections []*domain.Selection
 
 	for _, selection := range bet.Selections {
