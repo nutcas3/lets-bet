@@ -129,16 +129,32 @@ func (uc *PlaceBetUseCase) Execute(ctx context.Context, in PlaceBetInput) (*doma
 	}
 	defer func() { _ = dbTx.Rollback() }()
 
+	// Debit only the net stake (amount actually wagered)
 	if _, err := uc.wallets.ApplyTx(ctx, dbTx, wallet.Movement{
 		UserID:        in.UserID,
-		Amount:        in.Stake.Neg(), // debit the gross stake
+		Amount:        stakeBreak.NetStake.Neg(),
 		Type:          domain.TransactionTypeBetPlaced,
 		ReferenceID:   &bet.ID,
 		ReferenceType: "BET",
 		Description:   fmt.Sprintf("bet %s", bet.ID),
 		CountryCode:   in.CountryCode,
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("debit stake: %w", err)
+	}
+
+	// Record tax deduction as separate wallet movement for audit trail
+	if stakeBreak.StakeTax.GreaterThan(decimal.Zero) {
+		if _, err := uc.wallets.ApplyTx(ctx, dbTx, wallet.Movement{
+			UserID:        in.UserID,
+			Amount:        stakeBreak.StakeTax.Neg(),
+			Type:          domain.TransactionTypeTax,
+			ReferenceID:   &bet.ID,
+			ReferenceType: "BET",
+			Description:   fmt.Sprintf("stake tax for bet %s", bet.ID),
+			CountryCode:   in.CountryCode,
+		}); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := uc.bets.InsertTx(ctx, dbTx, bet); err != nil {
