@@ -1,6 +1,9 @@
 package config
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // ServiceConfig represents service configuration
 type ServiceConfig struct {
@@ -33,6 +36,11 @@ type RedisConfig struct {
 	DialTimeout  time.Duration
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
+}
+
+// Addr returns the Redis address in host:port format
+func (r *RedisConfig) Addr() string {
+	return fmt.Sprintf("%s:%d", r.Host, r.Port)
 }
 
 // NATSConfig represents NATS configuration
