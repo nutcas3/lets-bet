@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -212,69 +210,4 @@ func ValidateConfig(config *Config) error {
 	}
 
 	return nil
-}
-
-// LoadFromFile loads configuration from a JSON file
-func LoadFromFile(filename string) (*Config, error) {
-	// This would typically use a JSON library to load from file
-	// For now, we'll return an error as this isn't fully implemented
-	return nil, fmt.Errorf("loading from file not implemented")
-}
-
-// GetEnv gets environment variable with fallback
-func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return fallback
-}
-
-// GetEnvInt gets environment variable as integer with fallback
-func getEnvInt(key string, fallback int) int {
-	if value, exists := os.LookupEnv(key); exists {
-		if intValue, err := strconv.Atoi(value); err == nil {
-			return intValue
-		}
-	}
-	return fallback
-}
-
-// GetEnvInt64 gets environment variable as int64 with fallback
-func getEnvInt64(key string, fallback int64) int64 {
-	if value, exists := os.LookupEnv(key); exists {
-		if intValue, err := strconv.ParseInt(value, 10, 64); err == nil {
-			return intValue
-		}
-	}
-	return fallback
-}
-
-// GetEnvFloat64 gets environment variable as float64 with fallback
-func getEnvFloat64(key string, fallback float64) float64 {
-	if value, exists := os.LookupEnv(key); exists {
-		if floatValue, err := strconv.ParseFloat(value, 64); err == nil {
-			return floatValue
-		}
-	}
-	return fallback
-}
-
-// GetEnvBool gets environment variable as boolean with fallback
-func getEnvBool(key string, fallback bool) bool {
-	if value, exists := os.LookupEnv(key); exists {
-		if boolValue, err := strconv.ParseBool(value); err == nil {
-			return boolValue
-		}
-	}
-	return fallback
-}
-
-// GetEnvDuration gets environment variable as duration with fallback
-func getEnvDuration(key string, fallback time.Duration) time.Duration {
-	if value, exists := os.LookupEnv(key); exists {
-		if duration, err := time.ParseDuration(value); err == nil {
-			return duration
-		}
-	}
-	return fallback
 }

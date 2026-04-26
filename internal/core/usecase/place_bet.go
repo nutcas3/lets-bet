@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -11,14 +10,6 @@ import (
 	"github.com/betting-platform/internal/core/usecase/wallet"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-)
-
-// PlaceBet errors.
-var (
-	ErrUserNotEligible = errors.New("user not eligible to bet")
-	ErrInvalidBet      = errors.New("invalid bet configuration")
-	ErrStakeTooLow     = errors.New("stake below minimum")
-	ErrStakeTooHigh    = errors.New("stake exceeds maximum")
 )
 
 // BetInserter persists a new bet inside the caller's transaction.
@@ -87,8 +78,9 @@ func (uc *PlaceBetUseCase) Execute(ctx context.Context, in PlaceBetInput) (*doma
 		return nil, ErrUserNotEligible
 	}
 
-	// 2. Validate bet shape.
-	if err := uc.validate(in); err != nil {
+	// 2. Validate bet shape using validator
+	validator := NewPlaceBetValidator(uc.minStake, uc.maxStake)
+	if err := validator.Validate(in); err != nil {
 		return nil, err
 	}
 
@@ -166,22 +158,6 @@ func (uc *PlaceBetUseCase) Execute(ctx context.Context, in PlaceBetInput) (*doma
 	}
 
 	return bet, nil
-}
-
-func (uc *PlaceBetUseCase) validate(in PlaceBetInput) error {
-	if in.Stake.LessThan(uc.minStake) {
-		return ErrStakeTooLow
-	}
-	if in.Stake.GreaterThan(uc.maxStake) {
-		return ErrStakeTooHigh
-	}
-	if len(in.Selections) == 0 {
-		return ErrInvalidBet
-	}
-	if in.BetType == domain.BetTypeSingle && len(in.Selections) != 1 {
-		return ErrInvalidBet
-	}
-	return nil
 }
 
 func (uc *PlaceBetUseCase) calculateTotalOdds(betType domain.BetType, selections []domain.Selection) decimal.Decimal {
