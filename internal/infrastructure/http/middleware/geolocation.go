@@ -26,6 +26,8 @@ type GeoConfig struct {
 	// when a CDN or edge proxy resolves it for us. "" disables it.
 	// Defaults to "CF-IPCountry".
 	HeaderFallback string
+	// ProxyValidator validates proxy IPs to prevent header spoofing
+	ProxyValidator *ProxyValidator
 }
 
 type geoKey struct{}
@@ -53,7 +55,7 @@ func Geolocation(cfg GeoConfig) func(http.Handler) http.Handler {
 
 			country := strings.ToUpper(r.Header.Get(cfg.HeaderFallback))
 			if country == "" && cfg.Provider != nil {
-				if ip := parseIP(clientIP(r)); ip != nil {
+				if ip := parseIP(clientIP(r, cfg.ProxyValidator)); ip != nil {
 					if c, err := cfg.Provider.Country(r.Context(), ip); err == nil {
 						country = strings.ToUpper(c)
 					} else {

@@ -108,13 +108,19 @@ func CORS(cfg config.SecurityConfig) func(http.Handler) http.Handler {
 	}
 }
 
-func clientIP(r *http.Request) string {
-	if v := r.Header.Get("X-Forwarded-For"); v != "" {
-		parts := strings.Split(v, ",")
-		return strings.TrimSpace(parts[0])
+func clientIP(r *http.Request, proxyValidator *ProxyValidator) string {
+	remoteAddr := r.RemoteAddr
+	xForwardedFor := r.Header.Get("X-Forwarded-For")
+	xRealIP := r.Header.Get("X-Real-IP")
+
+	if proxyValidator != nil {
+		return proxyValidator.GetClientIP(remoteAddr, xForwardedFor, xRealIP)
 	}
-	if v := r.Header.Get("X-Real-IP"); v != "" {
-		return v
+
+	// Fallback to safe default if no validator configured
+	// Don't trust X-Forwarded-For without proxy validation
+	if xRealIP != "" {
+		return xRealIP
 	}
 	if i := strings.LastIndex(r.RemoteAddr, ":"); i > -1 {
 		return r.RemoteAddr[:i]
