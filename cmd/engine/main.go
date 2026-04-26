@@ -96,8 +96,15 @@ func main() {
 	}
 	defer redisRateLimiter.Close()
 
+	// Create proxy validator for X-Forwarded-For spoofing prevention
+	proxyValidator, err := middleware.NewDefaultProxyValidator([]string{}) // Add trusted proxy IPs if needed
+	if err != nil {
+		logger.Error("failed to create proxy validator", "error", err)
+		os.Exit(1)
+	}
+
 	// Apply rate limiting middleware
-	r.Use(middleware.RateLimitMiddleware(redisRateLimiter, rateLimitConfig))
+	r.Use(middleware.RateLimitMiddleware(redisRateLimiter, rateLimitConfig, proxyValidator))
 
 	// Health checks
 	h := health.NewHandler("engine", "dev")

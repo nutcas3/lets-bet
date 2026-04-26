@@ -10,14 +10,14 @@ import (
 )
 
 // RateLimitMiddleware creates HTTP middleware using the existing ratelimit.RedisLimiter
-func RateLimitMiddleware(redisLimiter *ratelimit.RedisLimiter, config *ratelimit.Config) func(http.Handler) http.Handler {
+func RateLimitMiddleware(redisLimiter *ratelimit.RedisLimiter, config *ratelimit.Config, proxyValidator *ProxyValidator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			logger := logging.FromContext(ctx)
 
 			// Get client IP
-			clientIP := clientIP(r)
+			clientIP := clientIP(r, proxyValidator)
 
 			// Check IP rate limit
 			result, err := redisLimiter.CheckIPLimit(ctx, clientIP)
@@ -111,14 +111,14 @@ func UserRateLimitMiddleware(redisLimiter *ratelimit.RedisLimiter, config *ratel
 }
 
 // CombinedRateLimitMiddleware creates middleware that checks both IP and user limits
-func CombinedRateLimitMiddleware(redisLimiter *ratelimit.RedisLimiter, ipConfig, userConfig *ratelimit.Config) func(http.Handler) http.Handler {
+func CombinedRateLimitMiddleware(redisLimiter *ratelimit.RedisLimiter, ipConfig, userConfig *ratelimit.Config, proxyValidator *ProxyValidator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			logger := logging.FromContext(ctx)
 
 			// First check IP rate limit
-			clientIP := clientIP(r)
+			clientIP := clientIP(r, proxyValidator)
 			ipResult, err := redisLimiter.CheckIPLimit(ctx, clientIP)
 			if err != nil {
 				logger.Error("IP rate limit check failed", "error", err, "ip", clientIP)

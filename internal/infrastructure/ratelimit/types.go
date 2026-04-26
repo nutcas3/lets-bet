@@ -42,6 +42,9 @@ type Config struct {
 	UserPrefix   string
 	IPPrefix     string
 	GlobalPrefix string
+
+	// Proxy validation for preventing X-Forwarded-For spoofing
+	TrustedProxyCIDRs []string
 }
 
 // DefaultConfig returns default rate limiting configuration

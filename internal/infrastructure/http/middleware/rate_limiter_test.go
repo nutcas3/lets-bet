@@ -35,7 +35,7 @@ func TestRateLimitMiddleware_IPRateLimiting(t *testing.T) {
 	defer redisLimiter.Close()
 
 	// Create test middleware
-	middleware := RateLimitMiddleware(redisLimiter, config)
+	middleware := RateLimitMiddleware(redisLimiter, config, nil)
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
@@ -87,7 +87,7 @@ func TestRateLimitMiddleware_DifferentIPs(t *testing.T) {
 	require.NoError(t, err)
 	defer redisLimiter.Close()
 
-	middleware := RateLimitMiddleware(redisLimiter, config)
+	middleware := RateLimitMiddleware(redisLimiter, config, nil)
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
@@ -230,7 +230,7 @@ func TestCombinedRateLimitMiddleware_BothLimits(t *testing.T) {
 	require.NoError(t, err)
 	defer redisLimiter.Close()
 
-	middleware := CombinedRateLimitMiddleware(redisLimiter, ipConfig, userConfig)
+	middleware := CombinedRateLimitMiddleware(redisLimiter, ipConfig, userConfig, nil)
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
@@ -281,7 +281,7 @@ func TestRateLimitMiddleware_MemoryLeakProtection(t *testing.T) {
 	require.NoError(t, err)
 	defer redisLimiter.Close()
 
-	middleware := RateLimitMiddleware(redisLimiter, config)
+	middleware := RateLimitMiddleware(redisLimiter, config, nil)
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
@@ -337,7 +337,7 @@ func TestRateLimitMiddleware_Headers(t *testing.T) {
 	require.NoError(t, err)
 	defer redisLimiter.Close()
 
-	middleware := RateLimitMiddleware(redisLimiter, config)
+	middleware := RateLimitMiddleware(redisLimiter, config, nil)
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
