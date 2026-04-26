@@ -117,6 +117,31 @@ func (m *MockGameBetRepository) CreateBetWithWalletUpdate(ctx context.Context, b
 	return bet.ID, nil
 }
 
+// AtomicAutoCashoutWithCredit simulates atomic auto-cashout with wallet credit in transaction
+func (m *MockGameBetRepository) AtomicAutoCashoutWithCredit(ctx context.Context, id uuid.UUID, userID uuid.UUID, cashoutAt decimal.Decimal, payout decimal.Decimal, country string) (bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	bet, exists := m.bets[id]
+	if !exists {
+		return false, assert.AnError
+	}
+
+	// Simulate atomic SQL: UPDATE bets SET status = 'cashed_out' WHERE id = ? AND status = 'active'
+	if bet.Status != domain.GameBetStatusActive {
+		return false, nil
+	}
+
+	bet.Status = domain.GameBetStatusCashedOut
+	bet.CashedOut = true
+	bet.CashoutAt = &cashoutAt
+	bet.Payout = payout
+	now := time.Now()
+	bet.CashedOutAt = &now
+
+	return true, nil
+}
+
 // MockWalletService implements wallet.WalletService interface
 type MockWalletService struct {
 	balances map[uuid.UUID]decimal.Decimal
