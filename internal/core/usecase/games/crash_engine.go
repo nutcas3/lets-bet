@@ -204,9 +204,13 @@ func (e *CrashGameEngine) tick() {
 	}
 
 	// Generate and store immutable snapshot for lock-free reads
+	e.mu.RLock()
+	roundNumber := e.roundNumber
+	e.mu.RUnlock()
+
 	state := &GameState{
 		GameID:        game.ID,
-		RoundNumber:   e.roundNumber,
+		RoundNumber:   roundNumber,
 		Status:        game.Status,
 		StartedAt:     game.StartedAt,
 		CurrentOdds:   currentOdds,
@@ -226,7 +230,11 @@ func (e *CrashGameEngine) startGameInternal() {
 		e.gameCancel()
 	}
 
+	e.mu.Lock()
 	e.roundNumber++
+	roundNumber := e.roundNumber
+	e.mu.Unlock()
+
 	gameID := uuid.New()
 
 	// Generate provably fair crash point
@@ -236,13 +244,13 @@ func (e *CrashGameEngine) startGameInternal() {
 		return
 	}
 	hash := e.fairService.HashServerSeed(seed)
-	crashPoint := e.fairService.CalculateCrashPoint(seed, "", e.roundNumber)
+	crashPoint := e.fairService.CalculateCrashPoint(seed, "", roundNumber)
 
 	// Create new game
 	game := &domain.Game{
 		ID:             gameID,
 		GameType:       domain.GameTypeCrash,
-		RoundNumber:    e.roundNumber,
+		RoundNumber:    roundNumber,
 		Status:         domain.GameStatusRunning,
 		StartedAt:      time.Now(),
 		ServerSeed:     seed,
@@ -607,9 +615,13 @@ func (e *CrashGameEngine) getGameState() *GameState {
 	// by the gameLoop thread, this local pointer remains valid.
 	activePlayerCount := e.hub.GetActivePlayerCount(game.ID)
 
+	e.mu.RLock()
+	roundNumber := e.roundNumber
+	e.mu.RUnlock()
+
 	return &GameState{
 		GameID:        game.ID,
-		RoundNumber:   e.roundNumber,
+		RoundNumber:   roundNumber,
 		Status:        game.Status,
 		StartedAt:     game.StartedAt,
 		CurrentOdds:   e.calculateCurrentOdds(game.StartedAt),
