@@ -3,8 +3,10 @@ package ratelimit
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,8 +18,8 @@ func (rl *RedisLimiter) HTTPMiddleware() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 
-			// Get client IP
-			clientIP := getClientIP(r)
+			// Get client IP with proxy validation
+			clientIP := getClientIP(r, rl.config.TrustedProxyCIDRs)
 
 			// Get user ID from context (if authenticated)
 			var userID uuid.UUID
@@ -89,27 +91,60 @@ func (rl *RedisLimiter) getLimitForType(limitType string) int {
 	}
 }
 
-// getClientIP extracts the real client IP from the request
-func getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header (when behind proxy/load balancer)
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// X-Forwarded-For can contain multiple IPs, take the first one
-		// Simple split for first IP
-		for i, c := range xff {
-			if c == ',' {
-				return xff[:i]
+// getClientIP extracts the real client IP from the request with proxy validation
+func getClientIP(r *http.Request, trustedProxyCIDRs []string) string {
+	// Remove port from RemoteAddr for comparison
+	remoteAddr := r.RemoteAddr
+	if idx := strings.LastIndex(remoteAddr, ":"); idx != -1 {
+		remoteAddr = remoteAddr[:idx]
+	}
+
+	// Check if request comes from trusted proxy
+	isFromTrustedProxy := isTrustedProxy(remoteAddr, trustedProxyCIDRs)
+
+	if isFromTrustedProxy {
+		// Only trust X-Forwarded-For from trusted proxies
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			// X-Forwarded-For can contain multiple IPs, take the first one (original client)
+			for i, c := range xff {
+				if c == ',' {
+					return strings.TrimSpace(xff[:i])
+				}
 			}
+			return xff
 		}
-		return xff
+
+		// Fall back to X-Real-IP from trusted proxies
+		if xri := r.Header.Get("X-Real-IP"); xri != "" {
+			return xri
+		}
 	}
 
-	// Check X-Real-IP header
-	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return xri
+	// Default to RemoteAddr if not from trusted proxy or headers invalid
+	if idx := strings.LastIndex(r.RemoteAddr, ":"); idx != -1 {
+		return r.RemoteAddr[:idx]
 	}
-
-	// Fall back to RemoteAddr
 	return r.RemoteAddr
+}
+
+// isTrustedProxy checks if the given IP is in the trusted proxy CIDR list
+func isTrustedProxy(ipStr string, trustedCIDRs []string) bool {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false
+	}
+
+	for _, cidr := range trustedCIDRs {
+		_, ipNet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			continue
+		}
+		if ipNet.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // RateLimitMiddlewareConfig holds configuration for rate limiting middleware
@@ -144,7 +179,7 @@ func (rl *RedisLimiter) HTTPMiddlewareWithConfig(config RateLimitMiddlewareConfi
 			if config.IPExtractor != nil {
 				clientIP = config.IPExtractor(r)
 			} else {
-				clientIP = getClientIP(r)
+				clientIP = getClientIP(r, rl.config.TrustedProxyCIDRs)
 			}
 
 			// Get user ID
