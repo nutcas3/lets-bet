@@ -390,3 +390,99 @@ func (r *GameBetRepository) CreateBetWithWalletUpdate(ctx context.Context, bet *
 
 	return returnedID, nil
 }
+
+// AtomicAutoCashoutWithCredit implements atomic auto-cashout with wallet credit in a single transaction
+// This prevents the bug where a bet is marked as cashed out but the wallet credit fails
+func (r *GameBetRepository) AtomicAutoCashoutWithCredit(ctx context.Context, id uuid.UUID, userID uuid.UUID, cashoutAt decimal.Decimal, payout decimal.Decimal, country string) (bool, error) {
+	// Start transaction
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		log.Printf("Error starting transaction for auto cashout: %v", err)
+		return false, err
+	}
+
+	// Ensure rollback if function fails
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Step 1: Atomic bet update - only update if bet is still active
+	betUpdateQuery := `
+		UPDATE game_bets
+		SET cashed_out = true, cashout_at = $1, payout = $2, status = $3, cashed_out_at = $4
+		WHERE id = $5 AND status = $6
+	`
+
+	now := time.Now()
+	result, err := tx.ExecContext(ctx, betUpdateQuery, cashoutAt, payout, domain.GameBetStatusCashedOut, now, id, domain.GameBetStatusActive)
+	if err != nil {
+		log.Printf("Error updating auto cashout bet: %v", err)
+		return false, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error getting rows affected: %v", err)
+		return false, err
+	}
+
+	// If no rows were affected, the bet was already processed (not active anymore)
+	if rowsAffected == 0 {
+		return false, nil
+	}
+
+	// Step 2: Credit the wallet balance
+	walletUpdateQuery := `
+		UPDATE wallets
+		SET balance = balance + $1, bonus_balance = bonus_balance + $2, updated_at = $3
+		WHERE user_id = $4
+		RETURNING balance
+	`
+
+	// For now, credit the full payout to main balance (can be split between main/bonus based on business logic)
+	var newBalance decimal.Decimal
+	err = tx.QueryRowContext(ctx, walletUpdateQuery, payout, decimal.Zero, now, userID).Scan(&newBalance)
+	if err != nil {
+		log.Printf("Error crediting wallet for auto cashout bet %s: %v", id, err)
+		return false, fmt.Errorf("wallet credit failed: %w", err)
+	}
+
+	// Step 3: Create transaction record for audit trail
+	transactionQuery := `
+		INSERT INTO transactions (
+			id, wallet_id, user_id, type, amount, currency,
+			balance_before, balance_after, reference_id, reference_type,
+			status, description, created_at, country_code
+		)
+		SELECT $1, w.id, $2, $3, $4, 'KES',
+			   w.balance - $4, w.balance, $5, $6,
+			   $7, $8, $9, $10
+		FROM wallets w WHERE w.user_id = $2
+	`
+
+	transactionID := uuid.New()
+	_, err = tx.ExecContext(ctx, transactionQuery,
+		transactionID, userID, domain.TransactionTypeBetWon, payout,
+		id, "BET", "COMPLETED", "Auto cashout payout", now, country,
+	)
+	if err != nil {
+		log.Printf("Error creating transaction record for auto cashout: %v", err)
+		return false, fmt.Errorf("transaction recording failed: %w", err)
+	}
+
+	// Commit transaction if all operations succeeded
+	if err = tx.Commit(); err != nil {
+		log.Printf("Error committing auto cashout transaction: %v", err)
+		return false, fmt.Errorf("transaction commit failed: %w", err)
+	}
+
+	// Transaction was successful - no rollback needed
+	err = nil
+
+	log.Printf("Successfully processed auto cashout for bet %s, credited %s to user %s, new balance: %s",
+		id.String(), payout.String(), userID.String(), newBalance.String())
+
+	return true, nil
+}
