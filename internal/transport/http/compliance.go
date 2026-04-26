@@ -105,29 +105,6 @@ func (h *ComplianceHandler) AddUserRestriction(w http.ResponseWriter, r *http.Re
 	}, http.StatusOK)
 }
 
-// GenerateComplianceReport generates a compliance report
-func (h *ComplianceHandler) GenerateComplianceReport(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Type   string      `json:"type"`
-		Period *TimePeriod `json:"period"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		WriteError(w, err, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	report, err := h.bclbService.GenerateComplianceReport(r.Context(), req.Type)
-	if err != nil {
-		WriteError(w, err, "Failed to generate compliance report", http.StatusInternalServerError)
-		return
-	}
-
-	WriteJSON(w, map[string]any{
-		"success": true,
-		"data":    report,
-	}, http.StatusOK)
-}
-
 // GetComplianceMetrics returns compliance metrics
 func (h *ComplianceHandler) GetComplianceMetrics(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -165,69 +142,6 @@ func (h *ComplianceHandler) GetComplianceMetrics(w http.ResponseWriter, r *http.
 	WriteJSON(w, map[string]any{
 		"success": true,
 		"data":    metrics,
-	}, http.StatusOK)
-}
-
-// GetComplianceAlerts returns compliance alerts
-func (h *ComplianceHandler) GetComplianceAlerts(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	alerts, err := h.bclbService.GetComplianceAlerts(ctx)
-	if err != nil {
-		WriteError(w, err, "Failed to get compliance alerts", http.StatusInternalServerError)
-		return
-	}
-
-	WriteJSON(w, map[string]any{
-		"success": true,
-		"data":    alerts,
-	}, http.StatusOK)
-}
-
-// AcknowledgeComplianceAlert acknowledges a compliance alert
-func (h *ComplianceHandler) AcknowledgeComplianceAlert(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		AlertID string `json:"alert_id"`
-		Notes   string `json:"notes,omitempty"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		WriteError(w, err, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	err := h.bclbService.AcknowledgeComplianceAlert(r.Context(), req.AlertID)
-	if err != nil {
-		WriteError(w, err, "Failed to acknowledge compliance alert", http.StatusInternalServerError)
-		return
-	}
-
-	WriteJSON(w, map[string]any{
-		"success": true,
-		"message": "Compliance alert acknowledged successfully",
-	}, http.StatusOK)
-}
-
-// ResolveComplianceAlert resolves a compliance alert
-func (h *ComplianceHandler) ResolveComplianceAlert(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		AlertID    string `json:"alert_id"`
-		Resolution string `json:"resolution"`
-		Notes      string `json:"notes,omitempty"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		WriteError(w, err, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	err := h.bclbService.ResolveComplianceAlert(r.Context(), req.AlertID)
-	if err != nil {
-		WriteError(w, err, "Failed to resolve compliance alert", http.StatusInternalServerError)
-		return
-	}
-
-	WriteJSON(w, map[string]any{
-		"success": true,
-		"message": "Compliance alert resolved successfully",
 	}, http.StatusOK)
 }
 
@@ -273,11 +187,7 @@ func (h *ComplianceHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/compliance/user/status/", h.GetUserComplianceStatus)
 	mux.HandleFunc("/api/compliance/user/limits/", h.SetUserLimits)
 	mux.HandleFunc("/api/compliance/user/restrictions/", h.AddUserRestriction)
-	mux.HandleFunc("/api/compliance/report/generate", h.GenerateComplianceReport)
 	mux.HandleFunc("/api/compliance/metrics", h.GetComplianceMetrics)
-	mux.HandleFunc("/api/compliance/alerts", h.GetComplianceAlerts)
-	mux.HandleFunc("/api/compliance/alerts/acknowledge", h.AcknowledgeComplianceAlert)
-	mux.HandleFunc("/api/compliance/alerts/resolve", h.ResolveComplianceAlert)
 	mux.HandleFunc("/api/compliance/settings", h.GetComplianceSettings)
 	mux.HandleFunc("/api/compliance/settings/update", h.UpdateComplianceSettings)
 }

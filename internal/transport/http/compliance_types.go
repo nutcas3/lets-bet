@@ -124,6 +124,27 @@ type TimePeriod struct {
 	To   time.Time `json:"to"`
 }
 
+// Violation represents a compliance violation
+type Violation struct {
+	ID          string    `json:"id"`
+	Type        string    `json:"type"`
+	Description string    `json:"description"`
+	Severity    string    `json:"severity"`
+	UserID      string    `json:"user_id"`
+	Date        time.Time `json:"date"`
+	Status      string    `json:"status"`
+	Resolved    time.Time `json:"resolved"`
+}
+
+// Recommendation represents a compliance recommendation
+type Recommendation struct {
+	ID          string    `json:"id"`
+	Type        string    `json:"type"`
+	Description string    `json:"description"`
+	Priority    string    `json:"priority"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 // ReportSummary represents report summary
 type ReportSummary struct {
 	TotalUsers        int64           `json:"total_users"`
@@ -149,44 +170,10 @@ type UserStatistics struct {
 
 // TransactionStats represents transaction statistics
 type TransactionStats struct {
-	TotalTransactions int64            `json:"total_transactions"`
-	TotalAmount       decimal.Decimal  `json:"total_amount"`
-	TotalPayout       decimal.Decimal  `json:"total_payout"`
-	TotalProfit       decimal.Decimal  `json:"total_profit"`
-	AverageBetSize    decimal.Decimal  `json:"average_bet_size"`
-	LargestBet        decimal.Decimal  `json:"largest_bet"`
-	SmallestBet       decimal.Decimal  `json:"smallest_bet"`
-	ByType            map[string]int64 `json:"by_type"`
-	ByStatus          map[string]int64 `json:"by_status"`
-}
-
-// Violation represents a compliance violation
-type Violation struct {
-	ID          string     `json:"id"`
-	Type        string     `json:"type"`
-	Severity    string     `json:"severity"`
-	UserID      string     `json:"user_id"`
-	Description string     `json:"description"`
-	DetectedAt  time.Time  `json:"detected_at"`
-	Status      string     `json:"status"`
-	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
-	ResolvedBy  string     `json:"resolved_by,omitempty"`
-	Actions     []string   `json:"actions"`
-}
-
-// Recommendation represents a compliance recommendation
-type Recommendation struct {
-	ID          string     `json:"id"`
-	Type        string     `json:"type"`
-	Priority    string     `json:"priority"`
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	Impact      string     `json:"impact"`
-	Effort      string     `json:"effort"`
-	Status      string     `json:"status"`
-	CreatedAt   time.Time  `json:"created_at"`
-	DueDate     *time.Time `json:"due_date,omitempty"`
-	AssignedTo  string     `json:"assigned_to,omitempty"`
+	TotalTransactions int64           `json:"total_transactions"`
+	TotalAmount       decimal.Decimal `json:"total_amount"`
+	SuccessCount      int64           `json:"success_count"`
+	FailureCount      int64           `json:"failure_count"`
 }
 
 // ComplianceAlert represents a compliance alert
@@ -206,23 +193,6 @@ type ComplianceAlert struct {
 	Metadata       map[string]any `json:"metadata,omitempty"`
 }
 
-// ComplianceRule represents a compliance rule
-type ComplianceRule struct {
-	ID          string         `json:"id"`
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Type        string         `json:"type"`
-	Category    string         `json:"category"`
-	Enabled     bool           `json:"enabled"`
-	Severity    string         `json:"severity"`
-	Conditions  map[string]any `json:"conditions"`
-	Actions     []string       `json:"actions"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	CreatedBy   string         `json:"created_by"`
-	UpdatedBy   string         `json:"updated_by"`
-}
-
 // ComplianceCheck represents a compliance check
 type ComplianceCheck struct {
 	CheckID   string         `json:"check_id"`
@@ -238,91 +208,12 @@ type ComplianceCheck struct {
 
 // CheckResult represents check result
 type CheckResult struct {
-	Passed          bool     `json:"passed"`
-	Score           int      `json:"score"`
-	MaxScore        int      `json:"max_score"`
-	Reason          string   `json:"reason,omitempty"`
-	Warnings        []string `json:"warnings,omitempty"`
-	Errors          []string `json:"errors,omitempty"`
-	Recommendations []string `json:"recommendations,omitempty"`
-}
-
-// ComplianceMetrics represents compliance metrics
-type ComplianceMetrics struct {
-	Period           *TimePeriod      `json:"period"`
-	TotalChecks      int64            `json:"total_checks"`
-	PassedChecks     int64            `json:"passed_checks"`
-	FailedChecks     int64            `json:"failed_checks"`
-	AlertCount       int64            `json:"alert_count"`
-	ViolationCount   int64            `json:"violation_count"`
-	ResolutionTime   time.Duration    `json:"resolution_time"`
-	ComplianceRate   decimal.Decimal  `json:"compliance_rate"`
-	RiskDistribution map[string]int64 `json:"risk_distribution"`
-	TopViolations    []*Violation     `json:"top_violations"`
-	Trends           []*MetricTrend   `json:"trends"`
-}
-
-// MetricTrend represents metric trends
-type MetricTrend struct {
-	Date       time.Time       `json:"date"`
-	Metric     string          `json:"metric"`
-	Value      int64           `json:"value"`
-	Change     decimal.Decimal `json:"change"`
-	ChangeType string          `json:"change_type"`
-}
-
-// ComplianceSettings represents compliance settings
-type ComplianceSettings struct {
-	Enabled               bool                     `json:"enabled"`
-	AutoVerification      bool                     `json:"auto_verification"`
-	RiskAssessmentEnabled bool                     `json:"risk_assessment_enabled"`
-	LimitEnforcement      bool                     `json:"limit_enforcement"`
-	AlertThresholds       map[string]int           `json:"alert_thresholds"`
-	VerificationLevels    []*VerificationLevel     `json:"verification_levels"`
-	DefaultLimits         *DefaultLimits           `json:"default_limits"`
-	RiskProfiles          []*ComplianceRiskProfile `json:"risk_profiles"`
-	ComplianceRules       []*ComplianceRule        `json:"compliance_rules"`
-	ReportingSchedule     string                   `json:"reporting_schedule"`
-	NotificationSettings  *NotificationSettings    `json:"notification_settings"`
-}
-
-// VerificationLevel represents verification levels
-type VerificationLevel struct {
-	Level           int             `json:"level"`
-	Name            string          `json:"name"`
-	Description     string          `json:"description"`
-	Requirements    []string        `json:"requirements"`
-	Benefits        []string        `json:"benefits"`
-	LimitMultiplier decimal.Decimal `json:"limit_multiplier"`
-}
-
-// DefaultLimits represents default limits
-type DefaultLimits struct {
-	MinBetAmount decimal.Decimal `json:"min_bet_amount"`
-	MaxBetAmount decimal.Decimal `json:"max_bet_amount"`
-	DailyLimit   decimal.Decimal `json:"daily_limit"`
-	WeeklyLimit  decimal.Decimal `json:"weekly_limit"`
-	MonthlyLimit decimal.Decimal `json:"monthly_limit"`
-	LossLimit    decimal.Decimal `json:"loss_limit"`
-	SessionLimit int             `json:"session_limit"`
-}
-
-// ComplianceRiskProfile represents risk profiles
-type ComplianceRiskProfile struct {
-	Profile         string          `json:"profile"`
-	Description     string          `json:"description"`
-	ScoreRange      [2]int          `json:"score_range"`
-	LimitMultiplier decimal.Decimal `json:"limit_multiplier"`
-	Restrictions    []string        `json:"restrictions"`
-	MonitoringLevel string          `json:"monitoring_level"`
-}
-
-// NotificationSettings represents notification settings
-type NotificationSettings struct {
-	EmailEnabled   bool     `json:"email_enabled"`
-	SMSEnabled     bool     `json:"sms_enabled"`
-	PushEnabled    bool     `json:"push_enabled"`
-	Recipients     []string `json:"recipients"`
-	AlertTypes     []string `json:"alert_types"`
-	DigestSchedule string   `json:"digest_schedule"`
+	Passed          bool           `json:"passed"`
+	Score           int            `json:"score"`
+	MaxScore        int            `json:"max_score"`
+	Reason          string         `json:"reason,omitempty"`
+	Warnings        []string       `json:"warnings,omitempty"`
+	Errors          []string       `json:"errors,omitempty"`
+	Recommendations []string       `json:"recommendations,omitempty"`
+	Metadata        map[string]any `json:"metadata,omitempty"`
 }
