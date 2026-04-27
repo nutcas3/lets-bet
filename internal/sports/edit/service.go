@@ -162,7 +162,7 @@ func (s *EditBetService) processRefund(ctx context.Context, bet *domain.SportBet
 		Description:   fmt.Sprintf("Bet edit refund for bet %s", bet.ID),
 		ProviderName:  "edit_bet",
 		ProviderTxnID: fmt.Sprintf("refund-%s", s.idGenerator.GenerateID()),
-		CountryCode:   "KE", // TODO: Get from bet or user
+		CountryCode:   bet.CountryCode,
 	}
 
 	_, err := s.walletService.Credit(ctx, bet.UserID, refundAmount, movement)
@@ -185,7 +185,7 @@ func (s *EditBetService) processAdditionalPayment(ctx context.Context, bet *doma
 		Description:   fmt.Sprintf("Bet edit additional payment for bet %s", bet.ID),
 		ProviderName:  "edit_bet",
 		ProviderTxnID: fmt.Sprintf("additional-%s", s.idGenerator.GenerateID()),
-		CountryCode:   "KE", // TODO: Get from bet or user
+		CountryCode:   bet.CountryCode,
 	}
 
 	_, err := s.walletService.Debit(ctx, bet.UserID, additionalAmount, movement)

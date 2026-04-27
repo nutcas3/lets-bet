@@ -114,6 +114,7 @@ func (b *Bet) CalculateTax(countryCode string) decimal.Decimal {
 type SportBet struct {
 	ID               string          `json:"id"`
 	UserID           string          `json:"user_id"`
+	CountryCode      string          `json:"country_code"`
 	EventID          string          `json:"event_id"`
 	MarketID         string          `json:"market_id"`
 	OutcomeID        string          `json:"outcome_id"`
