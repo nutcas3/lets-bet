@@ -67,6 +67,19 @@ jobs:
       - name: Build
         run: go build ./...
 
+      - name: Build migrate tool
+        run: go build -o bin/migrate ./cmd/migrate
+
+      - name: Run database migrations
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: "5432"
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE_NAME: betting_test
+          DATABASE_SSL_MODE: disable
+        run: ./bin/migrate -dir ./migrations -action up
+
       - name: Test
         env:
           DATABASE_HOST: localhost
