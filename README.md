@@ -132,8 +132,11 @@ cd lets-bet
 # Start infrastructure (Postgres, Redis, NATS)
 docker-compose up -d
 
-# Run database migrations
-go run cmd/migrate/main.go up
+# Run database migrations (up)
+./bin/migrate -dir ./migrations -action up
+
+# Or use Makefile
+make migrate-up
 
 # Build all services
 go build ./...
@@ -254,6 +257,57 @@ stakeBreak := taxEngine.ApplyStakeTax("KE", decimal.NewFromInt(1000))
 payoutBreak := taxEngine.ApplyPayoutTax("KE", grossPayout, stake)
 // WinningsTax: 20% of (winnings - threshold)
 ```
+
+---
+
+## Database Migrations
+
+This project uses [golang-migrate](https://github.com/golang-migrate/migrate) for database schema management.
+
+### Migration Format
+Migrations follow the golang-migrate naming convention:
+- Up migrations: `YYYYMMDDHHMMSS_description.up.sql`
+- Down migrations: `YYYYMMDDHHMMSS_description.down.sql`
+
+### Running Migrations
+
+```bash
+# Apply all pending migrations
+./bin/migrate -dir ./migrations -action up
+
+# Rollback one migration
+./bin/migrate -dir ./migrations -action down -steps 1
+
+# Check current migration version
+./bin/migrate -dir ./migrations -action version
+
+# Apply specific number of migrations
+./bin/migrate -dir ./migrations -action up -steps 2
+```
+
+### Using Makefile
+
+```bash
+make migrate-up      # Apply all pending migrations
+make migrate-down    # Rollback one migration
+make migrate-version # Check current version
+```
+
+### Using golang-migrate CLI
+
+```bash
+# Install golang-migrate CLI
+go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+# Run migrations directly
+migrate -path ./migrations -database "postgres://user:pass@localhost:5432/dbname?sslmode=disable" up
+```
+
+### Creating New Migrations
+
+1. Create up migration: `YYYYMMDDHHMMSS_new_feature.up.sql`
+2. Create down migration: `YYYYMMDDHHMMSS_new_feature.down.sql`
+3. Place both files in `./migrations/` directory
 
 ---
 

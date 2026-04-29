@@ -3,10 +3,8 @@ version: "2"
 run:
   timeout: 5m
   tests: true
-  go: "1.26.2"
 
 linters:
-  default: none
   enable:
     - errcheck
     - govet
