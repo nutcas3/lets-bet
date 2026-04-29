@@ -1,4 +1,4 @@
-.PHONY: build run-all test lint vet migrate clean docker-build tidy
+.PHONY: build run-all test lint vet migrate-up migrate-down migrate-version clean docker-build tidy
 
 # Build all services
 build:
@@ -25,10 +25,23 @@ run-all: build
 	docker-compose up -d postgres redis nats
 	./bin/gateway & ./bin/wallet & ./bin/engine & ./bin/settlement & ./bin/games &
 
-# Run database migrations
-migrate:
-	@echo "Running database migrations..."
-	go run ./cmd/migrate -dir ./migrations
+# Run database migrations (up)
+migrate-up:
+	@echo "Running database migrations (up)..."
+	./bin/migrate -dir ./migrations -action up
+
+# Rollback database migrations (down)
+migrate-down:
+	@echo "Rolling back database migrations (down)..."
+	./bin/migrate -dir ./migrations -action down -steps 1
+
+# Get current migration version
+migrate-version:
+	@echo "Getting migration version..."
+	./bin/migrate -dir ./migrations -action version
+
+# Legacy migrate target (deprecated, use migrate-up)
+migrate: migrate-up
 
 # Run tests
 test:
@@ -52,4 +65,4 @@ dev-setup:
 	@echo "Setting up development environment..."
 	docker-compose up -d
 	sleep 5
-	make migrate
+	make migrate-up
