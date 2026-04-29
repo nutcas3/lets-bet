@@ -32,14 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
         with:
-          go-version: '1.26.2'
-      - name: Install gosec
-        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
-      - name: Run gosec
-        run: gosec -exclude-dir=tests ./...
+          args: '-exclude-dir=tests ./...'
 
   codeql:
     name: CodeQL
