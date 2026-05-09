@@ -91,12 +91,17 @@ func Logging(next http.Handler) http.Handler {
 
 // CORS applies CORS headers based on configuration.
 func CORS(cfg config.SecurityConfig) func(http.Handler) http.Handler {
-	origins := strings.Join(cfg.CORSAllowedOrigins, ",")
 	methods := strings.Join(cfg.CORSAllowedMethods, ",")
 	headers := strings.Join(cfg.CORSAllowedHeaders, ",")
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", origins)
+			requestOrigin := r.Header.Get("Origin")
+			for _, allowed := range cfg.CORSAllowedOrigins {
+				if requestOrigin == allowed {
+					w.Header().Set("Access-Control-Allow-Origin", requestOrigin)
+					break
+				}
+			}
 			w.Header().Set("Access-Control-Allow-Methods", methods)
 			w.Header().Set("Access-Control-Allow-Headers", headers)
 			if r.Method == http.MethodOptions {
