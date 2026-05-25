@@ -142,13 +142,13 @@ make migrate-up
 go build ./...
 
 # Start gateway service (example)
-PORT=8080 go run cmd/gateway/main.go
+SERVICE_PORT=8080 go run cmd/gateway/main.go
 
 # Start wallet service (example)
-PORT=8081 go run cmd/wallet/main.go
+SERVICE_PORT=8081 go run cmd/wallet/main.go
 
 # Start games service (example)
-PORT=8082 go run cmd/games/main.go
+SERVICE_PORT=8082 go run cmd/games/main.go
 ```
 
 ### 3. Test the API

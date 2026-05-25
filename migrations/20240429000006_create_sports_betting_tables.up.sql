@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS sport_events (
     home_team VARCHAR(255) NOT NULL,
     away_team VARCHAR(255) NOT NULL,
     start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED', 'LIVE', 'FINISHED', 'POSTPONED', 'CANCELLED')),
+    status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED',
     
     -- Score information
     home_score INTEGER DEFAULT 0,
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS sport_bets (
     currency VARCHAR(3) NOT NULL DEFAULT 'KES',
     
     -- Bet status
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'WON', 'LOST', 'VOID', 'CANCELLED')),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     payout DECIMAL(15,2) DEFAULT 0,
     net_payout DECIMAL(15,2) DEFAULT 0, -- After taxes
     
