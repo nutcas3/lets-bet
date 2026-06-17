@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS sms_logs (
     message_type VARCHAR(50) NOT NULL, -- 'welcome', 'verification', 'deposit', 'withdrawal', 'bet', 'win', 'promotional', etc.
     
     -- Status information
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SENT', 'DELIVERED', 'FAILED', 'REJECTED')),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     status_code VARCHAR(10),
     error_message TEXT,
     
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS otp_logs (
     time_to_live INTEGER NOT NULL DEFAULT 300, -- TTL in seconds
     
     -- Status information
-    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SENT', 'VERIFIED', 'EXPIRED', 'FAILED')),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     verification_attempts INTEGER DEFAULT 0,
     max_attempts INTEGER DEFAULT 3,
     
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS ussd_logs (
     phone_number VARCHAR(20) NOT NULL,
     input_text TEXT NOT NULL,
     response_text TEXT NOT NULL,
-    session_status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (session_status IN ('ACTIVE', 'COMPLETED', 'TIMEOUT', 'ERROR')),
+    session_status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     
     -- Provider information
     provider VARCHAR(50) NOT NULL DEFAULT 'africastalking',
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS voice_logs (
     phone_number VARCHAR(20) NOT NULL,
     from_number VARCHAR(20) NOT NULL,
     message TEXT NOT NULL,
-    call_status VARCHAR(20) NOT NULL DEFAULT 'INITIATED' CHECK (call_status IN ('INITIATED', 'CONNECTED', 'COMPLETED', 'FAILED', 'BUSY', 'NO_ANSWER')),
+    call_status VARCHAR(20) NOT NULL DEFAULT 'INITIATED',
     
     -- Call details
     duration INTEGER DEFAULT 0, -- Call duration in seconds
@@ -274,7 +274,7 @@ CREATE TRIGGER update_communication_templates_updated_at
     EXECUTE FUNCTION update_communication_templates_updated_at();
 
 -- Add comments
-COMMENT ON TABLE sms_logs IS 'Logs all SMS messages sent through Africa\'s Talking';
+COMMENT ON TABLE sms_logs IS 'Logs all SMS messages sent through Africa''s Talking';
 COMMENT ON TABLE otp_logs IS 'Logs all OTP requests and verifications';
 COMMENT ON TABLE ussd_logs IS 'Logs USSD session interactions';
 COMMENT ON TABLE voice_logs IS 'Logs voice call details';

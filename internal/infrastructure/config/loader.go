@@ -1,36 +1,16 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // LoadFromFile loads configuration from a file
 func LoadFromFile(filename string) (*Config, error) {
-	// Read file contents
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	// Parse file contents (simple key=value format)
-	lines := strings.Split(string(content), "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) == 2 {
-			key := strings.TrimSpace(parts[0])
-			value := strings.TrimSpace(parts[1])
-			os.Setenv(key, value)
-		}
-	}
+	_ = godotenv.Load(filename)
 
 	return LoadConfig()
 }

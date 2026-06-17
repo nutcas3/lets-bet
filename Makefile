@@ -1,7 +1,7 @@
 .PHONY: build run-all test lint vet migrate-up migrate-down migrate-version clean docker-build tidy
 
 # Build all services
-build:
+build: tidy
 	@echo "Building all services..."
 	go build -o bin/gateway ./cmd/gateway
 	go build -o bin/wallet ./cmd/wallet
@@ -16,13 +16,16 @@ tidy:
 vet:
 	go vet ./...
 
+fmt:
+	go fmt ./...
+
 lint:
 	golangci-lint run ./...
 
 # Run all services locally (requires Docker for dependencies)
 run-all: build
 	@echo "Starting all services..."
-	docker-compose up -d postgres redis nats
+	docker compose up -d postgres redis nats
 	./bin/gateway & ./bin/wallet & ./bin/engine & ./bin/settlement & ./bin/games &
 
 # Run database migrations (up)
@@ -50,7 +53,7 @@ test:
 # Clean build artifacts
 clean:
 	rm -rf bin/
-	docker-compose down
+	docker compose down -v
 
 # Build Docker images for production
 docker-build:
@@ -61,8 +64,8 @@ docker-build:
 	docker build -t betting-platform/games:latest -f deployments/games/Dockerfile .
 
 # Development setup
-dev-setup:
+dev-setup: build
 	@echo "Setting up development environment..."
-	docker-compose up -d
-	sleep 5
+	docker compose up -d
+	sleep 10
 	make migrate-up

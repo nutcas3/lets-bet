@@ -19,7 +19,7 @@ func main() {
 	steps := flag.Int("steps", 0, "number of steps to migrate (0 = all)")
 	flag.Parse()
 
-	cfg, err := config.LoadConfig()
+	cfg, err := config.LoadFromFile(".env")
 	if err != nil {
 		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
